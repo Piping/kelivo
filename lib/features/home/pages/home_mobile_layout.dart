@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import '../../../l10n/app_localizations.dart';
+import '../../../core/models/codex_remote_session.dart';
 import '../../../shared/widgets/interactive_drawer.dart';
 import '../widgets/side_drawer.dart';
 import '../../../icons/lucide_adapter.dart';
@@ -20,6 +21,7 @@ import '../../../shared/widgets/ios_tactile.dart';
 import '../../../utils/sandbox_path_resolver.dart';
 import '../widgets/assistant_avatar.dart';
 import '../widgets/assistant_entry_actions.dart';
+import '../widgets/new_session_sheet.dart';
 
 /// Mobile layout scaffold for the home page
 /// This widget handles only the structural layout - AppBar, drawer, body structure
@@ -40,6 +42,10 @@ class HomeMobileScaffold extends StatelessWidget {
     required this.onNewConversation,
     required this.onOpenMiniMap,
     required this.onCreateNewConversation,
+    required this.onOpenCodexWorkspace,
+    required this.codexSessions,
+    required this.activeCodexSessionId,
+    required this.onSelectCodexSession,
     required this.onSelectModel,
     required this.globalSearchMode,
     required this.globalSearchQuery,
@@ -64,6 +70,10 @@ class HomeMobileScaffold extends StatelessWidget {
   final VoidCallback onNewConversation;
   final VoidCallback onOpenMiniMap;
   final Future<void> Function() onCreateNewConversation;
+  final Future<void> Function() onOpenCodexWorkspace;
+  final List<CodexRemoteSession> codexSessions;
+  final String? activeCodexSessionId;
+  final Future<void> Function(String sessionId) onSelectCodexSession;
   final VoidCallback onSelectModel;
   final bool globalSearchMode;
   final String globalSearchQuery;
@@ -106,6 +116,16 @@ class HomeMobileScaffold extends StatelessWidget {
         },
         onNewConversation: ({closeDrawer = true}) async {
           await onCreateNewConversation();
+          if (closeDrawer) drawerController.close();
+        },
+        codexSessions: codexSessions,
+        activeCodexSessionId: activeCodexSessionId,
+        onOpenCodexWorkspace: ({closeDrawer = true}) async {
+          await onOpenCodexWorkspace();
+          if (closeDrawer) drawerController.close();
+        },
+        onSelectCodexSession: (sessionId, {closeDrawer = true}) async {
+          await onSelectCodexSession(sessionId);
           if (closeDrawer) drawerController.close();
         },
       ),
@@ -260,7 +280,16 @@ class HomeMobileScaffold extends StatelessWidget {
           size: 22,
           minSize: 44,
           onTap: () async {
-            await onCreateNewConversation();
+            final action = await showNewSessionSheet(context);
+            if (action == null) return;
+            switch (action) {
+              case NewSessionAction.chat:
+                await onCreateNewConversation();
+                break;
+              case NewSessionAction.codexWorkspace:
+                await onOpenCodexWorkspace();
+                break;
+            }
           },
           icon: Lucide.MessageCirclePlus,
         ),

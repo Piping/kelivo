@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import '../../../l10n/app_localizations.dart';
+import '../../../core/models/codex_remote_session.dart';
 import '../widgets/side_drawer.dart';
 import '../../../icons/lucide_adapter.dart';
 import '../../../core/models/assistant.dart';
@@ -22,6 +23,7 @@ import '../../../desktop/hotkeys/chat_action_bus.dart';
 import '../../../desktop/hotkeys/sidebar_tab_bus.dart';
 import '../widgets/assistant_avatar.dart';
 import '../widgets/assistant_entry_actions.dart';
+import '../widgets/new_session_sheet.dart';
 
 /// Desktop/Tablet layout scaffold for the home page
 /// Handles the overall structure: left sidebar, main content, optional right sidebar
@@ -48,6 +50,10 @@ class HomeDesktopScaffold extends StatelessWidget {
     required this.onSelectConversation,
     required this.onNewConversation,
     required this.onCreateNewConversation,
+    required this.onOpenCodexWorkspace,
+    required this.codexSessions,
+    required this.activeCodexSessionId,
+    required this.onSelectCodexSession,
     required this.onSelectModel,
     required this.globalSearchMode,
     required this.globalSearchQuery,
@@ -83,6 +89,10 @@ class HomeDesktopScaffold extends StatelessWidget {
   final void Function(String id) onSelectConversation;
   final VoidCallback onNewConversation;
   final Future<void> Function() onCreateNewConversation;
+  final Future<void> Function() onOpenCodexWorkspace;
+  final List<CodexRemoteSession> codexSessions;
+  final String? activeCodexSessionId;
+  final Future<void> Function(String sessionId) onSelectCodexSession;
   final VoidCallback onSelectModel;
   final bool globalSearchMode;
   final String globalSearchQuery;
@@ -186,6 +196,11 @@ class HomeDesktopScaffold extends StatelessWidget {
       },
       onOpenGlobalSearchResult: onOpenGlobalSearchResult,
       onNewConversation: ({closeDrawer = true}) => onNewConversation(),
+      codexSessions: codexSessions,
+      activeCodexSessionId: activeCodexSessionId,
+      onOpenCodexWorkspace: ({closeDrawer = true}) => onOpenCodexWorkspace(),
+      onSelectCodexSession: (sessionId, {closeDrawer = true}) =>
+          onSelectCodexSession(sessionId),
       onSelectConversation: (id, {closeDrawer = true}) =>
           onSelectConversation(id),
     );
@@ -251,6 +266,12 @@ class HomeDesktopScaffold extends StatelessWidget {
                       onSelectConversation(id),
                   onNewConversation: ({closeDrawer = true}) =>
                       onNewConversation(),
+                  codexSessions: codexSessions,
+                  activeCodexSessionId: activeCodexSessionId,
+                  onOpenCodexWorkspace: ({closeDrawer = true}) =>
+                      onOpenCodexWorkspace(),
+                  onSelectCodexSession: (sessionId, {closeDrawer = true}) =>
+                      onSelectCodexSession(sessionId),
                 ),
               ),
             ),
@@ -550,7 +571,16 @@ class HomeDesktopScaffold extends StatelessWidget {
         minSize: 40,
         icon: Lucide.MessageCirclePlus,
         onTap: () async {
-          await onCreateNewConversation();
+          final action = await showNewSessionSheet(context);
+          if (action == null) return;
+          switch (action) {
+            case NewSessionAction.chat:
+              await onCreateNewConversation();
+              break;
+            case NewSessionAction.codexWorkspace:
+              await onOpenCodexWorkspace();
+              break;
+          }
         },
       ),
       const SizedBox(width: 6),

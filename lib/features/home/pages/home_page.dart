@@ -3,6 +3,7 @@ import 'dart:io' show File;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../main.dart';
@@ -12,15 +13,19 @@ import '../../../shared/widgets/ios_form_text_field.dart';
 import '../../../shared/widgets/ios_tactile.dart';
 import '../../../shared/widgets/loading_dialog_card.dart';
 import '../../../shared/widgets/snackbar.dart';
+import '../../../shared/widgets/ios_tactile.dart';
 import '../../../theme/design_tokens.dart';
+import '../../../icons/lucide_adapter.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/assistant_provider.dart';
+import '../../../core/providers/codex_remote_provider.dart';
 import '../../../core/providers/quick_phrase_provider.dart';
 import '../../../core/providers/instruction_injection_provider.dart';
 import '../../../core/providers/world_book_provider.dart';
 import '../../../core/models/quick_phrase.dart';
 import '../../../core/models/chat_input_data.dart';
 import '../../../core/models/chat_message.dart';
+import '../../../core/models/codex_remote_session.dart';
 import '../../../core/services/android_process_text.dart';
 import '../../../utils/sandbox_path_resolver.dart';
 import '../../../utils/platform_utils.dart';
@@ -37,6 +42,8 @@ import '../../chat/widgets/context_management_sheet.dart';
 import '../../chat/widgets/reasoning_budget_sheet.dart';
 import '../../search/widgets/search_settings_sheet.dart';
 import '../../model/widgets/model_select_sheet.dart';
+import '../../codex/pages/codex_session_detail_page.dart';
+import '../../codex/pages/codex_workspace_page.dart';
 import '../../mcp/pages/mcp_page.dart';
 import '../../provider/pages/providers_page.dart';
 import '../../assistant/widgets/mcp_assistant_sheet.dart';
@@ -359,6 +366,8 @@ class _DialogActionButton extends StatelessWidget {
   }
 }
 
+enum _HomeSurfaceMode { chat, codexWorkspace, codexSession }
+
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin, RouteAware, WidgetsBindingObserver {
   // ============================================================================
@@ -380,6 +389,12 @@ class _HomePageState extends State<HomePage>
   final GlobalKey _selectionExportBarKey = GlobalKey();
   bool _scrollNavHovering = false;
   StreamSubscription<String>? _processTextSub;
+  _HomeSurfaceMode _surfaceMode = _HomeSurfaceMode.chat;
+  String? _activeCodexSessionId;
+  CodexRemoteSession? _activeCodexSession;
+  final List<String> _openedCodexSessionIds = <String>[];
+  bool _codexToolbarRefreshing = false;
+  bool _codexToolbarInterrupting = false;
 
   // ============================================================================
   // Page Controller (manages all business logic and state)
@@ -516,6 +531,105 @@ class _HomePageState extends State<HomePage>
     });
   }
 
+  void _openChatSurface() {
+    if (_surfaceMode == _HomeSurfaceMode.chat) {
+      return;
+    }
+    setState(() {
+      _surfaceMode = _HomeSurfaceMode.chat;
+    });
+  }
+
+  Future<void> _openCodexWorkspaceSurface() async {
+    if (!mounted) return;
+    setState(() {
+      _surfaceMode = _HomeSurfaceMode.codexWorkspace;
+    });
+    await context.read<CodexRemoteProvider>().refreshWorkspace();
+  }
+
+  Future<void> _openCodexSessionSurface(String sessionId) async {
+    final provider = context.read<CodexRemoteProvider>();
+    final fallback =
+        provider.sessionDetailFor(sessionId) ??
+        _findCodexSession(provider, sessionId);
+    if (fallback == null) {
+      return;
+    }
+    setState(() {
+      _surfaceMode = _HomeSurfaceMode.codexSession;
+      _activeCodexSessionId = sessionId;
+      _activeCodexSession = fallback;
+    });
+    _rememberOpenedCodexSession(sessionId);
+    await provider.refreshWorkspace();
+    final detail = await provider.refreshSessionDetail(
+      sessionId,
+      activate: true,
+    );
+    if (!mounted || detail == null) {
+      return;
+    }
+    setState(() {
+      _activeCodexSession = detail;
+    });
+    _rememberOpenedCodexSession(sessionId);
+  }
+
+  CodexRemoteSession? _currentCodexSession(CodexRemoteProvider provider) {
+    final sessionId = _activeCodexSessionId;
+    if (sessionId == null) {
+      return _activeCodexSession;
+    }
+    return provider.sessionDetailFor(sessionId) ??
+        _activeCodexSession ??
+        _findCodexSession(provider, sessionId);
+  }
+
+  CodexRemoteSession? _findCodexSession(
+    CodexRemoteProvider provider,
+    String sessionId,
+  ) {
+    for (final session in provider.sessions) {
+      if (session.id == sessionId) {
+        return session;
+      }
+    }
+    return null;
+  }
+
+  List<CodexRemoteSession> _openedCodexSessions(CodexRemoteProvider provider) {
+    final result = <CodexRemoteSession>[];
+    for (final sessionId in _openedCodexSessionIds) {
+      final session =
+          provider.sessionDetailFor(sessionId) ??
+          (sessionId == _activeCodexSessionId ? _activeCodexSession : null) ??
+          _findCodexSession(provider, sessionId);
+      if (session != null) {
+        result.add(session);
+      }
+    }
+    return result;
+  }
+
+  void _rememberOpenedCodexSession(String sessionId) {
+    final next = <String>[
+      sessionId,
+      ..._openedCodexSessionIds.where((id) => id != sessionId),
+    ];
+    if (!mounted) {
+      _openedCodexSessionIds
+        ..clear()
+        ..addAll(next);
+      return;
+    }
+    setState(() {
+      _openedCodexSessionIds
+        ..clear()
+        ..addAll(next);
+    });
+  }
+
   // ============================================================================
   // Build Methods
   // ============================================================================
@@ -526,11 +640,17 @@ class _HomePageState extends State<HomePage>
     final cs = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsProvider>();
     final assistant = context.watch<AssistantProvider>().currentAssistant;
+    final codexProvider = context.watch<CodexRemoteProvider>();
+    final codexSession = _currentCodexSession(codexProvider);
 
     final modelInfo = getModelDisplayInfo(settings, assistant: assistant);
 
     final title =
-        ((_controller.currentConversation?.title ?? '').trim().isNotEmpty)
+        _surfaceMode == _HomeSurfaceMode.codexSession && codexSession != null
+        ? codexSession.displayTitle
+        : _surfaceMode == _HomeSurfaceMode.codexWorkspace
+        ? AppLocalizations.of(context)!.codexWorkspacePageTitle
+        : ((_controller.currentConversation?.title ?? '').trim().isNotEmpty)
         ? _controller.currentConversation!.title
         : _controller.titleForLocale();
 
@@ -567,21 +687,32 @@ class _HomePageState extends State<HomePage>
     final allSelected =
         selectable.isNotEmpty &&
         selectable.every((m) => _controller.selectedItems.contains(m.id));
+    final codexProvider = context.watch<CodexRemoteProvider>();
+    final codexAppBar = _buildCodexHomeAppBar(context, isDesktop: false);
+    final body = _surfaceMode == _HomeSurfaceMode.chat
+        ? _wrapWithDropTarget(_buildMobileBody(context, cs))
+        : _buildCodexSurfaceBody(context, cs);
 
     return HomeMobileScaffold(
       scaffoldKey: _scaffoldKey,
       drawerController: _drawerController,
       assistantPickerCloseTick: _assistantPickerCloseTick,
       loadingConversationIds: _controller.loadingConversationIds,
+      codexSessions: _openedCodexSessions(codexProvider),
+      activeCodexSessionId: _surfaceMode == _HomeSurfaceMode.codexSession
+          ? _activeCodexSessionId
+          : null,
       title: title,
       providerName: providerName,
       modelDisplay: modelDisplay,
       onToggleDrawer: () => _drawerController.toggle(),
       onDismissKeyboard: _controller.dismissKeyboard,
       onSelectConversation: (id) {
+        _openChatSurface();
         _controller.switchConversationAnimated(id);
       },
       onNewConversation: () async {
+        _openChatSurface();
         await _controller.createNewConversationAnimated();
       },
       onOpenMiniMap: () async {
@@ -602,11 +733,14 @@ class _HomePageState extends State<HomePage>
         }
       },
       onCreateNewConversation: () async {
+        _openChatSurface();
         await _controller.createNewConversationAnimated();
         if (mounted) {
           _controller.forceScrollToBottomSoon(animate: false);
         }
       },
+      onOpenCodexWorkspace: _openCodexWorkspaceSurface,
+      onSelectCodexSession: _openCodexSessionSurface,
       onSelectModel: () => showModelSelectSheet(context),
       globalSearchMode: _controller.isGlobalSearchMode,
       globalSearchQuery: _controller.globalSearchQuery,
@@ -617,7 +751,9 @@ class _HomePageState extends State<HomePage>
           _controller.exitGlobalSearchMode(clearQuery: true),
       onOpenGlobalSearchResult: (convId, msgId) => _controller
           .openGlobalSearchResult(conversationId: convId, messageId: msgId),
-      appBarOverride: _controller.selecting
+      appBarOverride: _surfaceMode != _HomeSurfaceMode.chat
+          ? codexAppBar
+          : _controller.selecting
           ? ChatSelectionAppBar(
               selectedCount: _controller.selectedCount,
               allSelected: allSelected,
@@ -630,7 +766,7 @@ class _HomePageState extends State<HomePage>
               onInvertSelection: _controller.invertSelection,
             )
           : null,
-      body: _wrapWithDropTarget(_buildMobileBody(context, cs)),
+      body: body,
     );
   }
 
@@ -716,11 +852,20 @@ class _HomePageState extends State<HomePage>
     final allSelected =
         selectable.isNotEmpty &&
         selectable.every((m) => _controller.selectedItems.contains(m.id));
+    final codexProvider = context.watch<CodexRemoteProvider>();
+    final codexAppBar = _buildCodexHomeAppBar(context, isDesktop: true);
+    final body = _surfaceMode == _HomeSurfaceMode.chat
+        ? _wrapWithDropTarget(_buildTabletBody(context, cs))
+        : _buildCodexSurfaceBody(context, cs);
 
     return HomeDesktopScaffold(
       scaffoldKey: _scaffoldKey,
       assistantPickerCloseTick: _assistantPickerCloseTick,
       loadingConversationIds: _controller.loadingConversationIds,
+      codexSessions: _openedCodexSessions(codexProvider),
+      activeCodexSessionId: _surfaceMode == _HomeSurfaceMode.codexSession
+          ? _activeCodexSessionId
+          : null,
       title: title,
       providerName: providerName,
       modelDisplay: modelDisplay,
@@ -733,15 +878,20 @@ class _HomePageState extends State<HomePage>
       onToggleSidebar: _controller.toggleTabletSidebar,
       onToggleRightSidebar: _controller.toggleRightSidebar,
       onSelectConversation: (id) {
+        _openChatSurface();
         _controller.switchConversationAnimated(id);
       },
       onNewConversation: () async {
+        _openChatSurface();
         await _controller.createNewConversationAnimated();
       },
       onCreateNewConversation: () async {
+        _openChatSurface();
         await _controller.createNewConversationAnimated();
         if (mounted) _controller.forceScrollToBottomSoon(animate: false);
       },
+      onOpenCodexWorkspace: _openCodexWorkspaceSurface,
+      onSelectCodexSession: _openCodexSessionSurface,
       globalSearchMode: _controller.isGlobalSearchMode,
       globalSearchQuery: _controller.globalSearchQuery,
       onGlobalSearchQueryChanged: _controller.setGlobalSearchQuery,
@@ -753,7 +903,9 @@ class _HomePageState extends State<HomePage>
       onRightSidebarWidthChanged: _controller.updateRightSidebarWidth,
       onRightSidebarWidthChangeEnd: _controller.saveRightSidebarWidth,
       buildAssistantBackground: _buildAssistantBackground,
-      appBarOverride: _controller.selecting
+      appBarOverride: _surfaceMode != _HomeSurfaceMode.chat
+          ? codexAppBar
+          : _controller.selecting
           ? ChatSelectionAppBar(
               selectedCount: _controller.selectedCount,
               allSelected: allSelected,
@@ -766,7 +918,7 @@ class _HomePageState extends State<HomePage>
               onInvertSelection: _controller.invertSelection,
             )
           : null,
-      body: _wrapWithDropTarget(_buildTabletBody(context, cs)),
+      body: body,
     );
   }
 
@@ -801,6 +953,170 @@ class _HomePageState extends State<HomePage>
         id,
         !_controller.selectedItems.contains(id),
       ),
+    );
+  }
+
+  Widget _buildCodexSurfaceBody(BuildContext context, ColorScheme cs) {
+    final provider = context.watch<CodexRemoteProvider>();
+    final session = _currentCodexSession(provider);
+
+    return Stack(
+      children: [
+        _buildChatBackground(context, cs),
+        Padding(
+          padding: EdgeInsets.only(
+            top: kToolbarHeight + MediaQuery.paddingOf(context).top,
+          ),
+          child:
+              _surfaceMode == _HomeSurfaceMode.codexSession && session != null
+              ? CodexSessionConversationView(
+                  key: ValueKey<String>('codex-session-${session.id}'),
+                  sessionId: session.id,
+                  initialSession: session,
+                )
+              : CodexWorkspaceContent(
+                  onOpenSession: (session) =>
+                      _openCodexSessionSurface(session.id),
+                ),
+        ),
+      ],
+    );
+  }
+
+  PreferredSizeWidget _buildCodexHomeAppBar(
+    BuildContext context, {
+    required bool isDesktop,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final provider = context.watch<CodexRemoteProvider>();
+    final session = _currentCodexSession(provider);
+    final isSession =
+        _surfaceMode == _HomeSurfaceMode.codexSession && session != null;
+    final title = isSession
+        ? session.displayTitle
+        : l10n.codexWorkspacePageTitle;
+    final subtitle = isSession
+        ? codexSessionStatusText(context, session.runtimeStatus)
+        : null;
+
+    Future<void> refresh() async {
+      if (_codexToolbarRefreshing) return;
+      setState(() => _codexToolbarRefreshing = true);
+      try {
+        if (isSession) {
+          final detail = await provider.refreshSessionDetail(
+            session.id,
+            activate: true,
+          );
+          if (!mounted || detail == null) return;
+          setState(() => _activeCodexSession = detail);
+        } else {
+          await provider.refreshWorkspace();
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _codexToolbarRefreshing = false);
+        }
+      }
+    }
+
+    Future<void> interrupt() async {
+      if (!isSession || _codexToolbarInterrupting) return;
+      setState(() => _codexToolbarInterrupting = true);
+      try {
+        await provider.interruptSession(session.id);
+        final detail = await provider.refreshSessionDetail(
+          session.id,
+          activate: true,
+        );
+        if (!mounted || detail == null) return;
+        setState(() => _activeCodexSession = detail);
+      } finally {
+        if (mounted) {
+          setState(() => _codexToolbarInterrupting = false);
+        }
+      }
+    }
+
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: IosIconButton(
+        size: 20,
+        padding: const EdgeInsets.all(8),
+        minSize: 40,
+        builder: (color) => SvgPicture.asset(
+          'assets/icons/list.svg',
+          width: 14,
+          height: 14,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+        ),
+        onTap: isDesktop
+            ? _controller.toggleTabletSidebar
+            : _drawerController.toggle,
+      ),
+      titleSpacing: 2,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: isDesktop ? 14 : 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          if (subtitle != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: cs.onSurface.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          tooltip: l10n.codexWorkspaceRefreshTooltip,
+          onPressed: _codexToolbarRefreshing ? null : refresh,
+          icon: _codexToolbarRefreshing
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Lucide.RefreshCw),
+        ),
+        if (isSession)
+          IconButton(
+            tooltip: l10n.codexWorkspaceSessionInterruptTooltip,
+            onPressed:
+                session.runtimeStatus?.isActive == true &&
+                    !_codexToolbarInterrupting
+                ? interrupt
+                : null,
+            icon: _codexToolbarInterrupting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Lucide.Square),
+          ),
+      ],
     );
   }
 

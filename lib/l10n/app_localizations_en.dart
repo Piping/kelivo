@@ -70,10 +70,202 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsPageMcp => 'MCP';
 
   @override
+  String get settingsPageCodexWorkspace => 'Codex Workspace';
+
+  @override
   String get settingsPageQuickPhrase => 'Quick Phrase';
 
   @override
   String get settingsPageInstructionInjection => 'Instruction Injection';
+
+  @override
+  String get codexWorkspacePageTitle => 'Codex Workspace';
+
+  @override
+  String get codexWorkspaceConnectSectionTitle => 'Remote Host';
+
+  @override
+  String get codexWorkspaceConnectSectionSubtitle =>
+      'Connect Kelivo to a running codex-remote host on your network.';
+
+  @override
+  String get codexWorkspaceHostLabel => 'Host Address';
+
+  @override
+  String get codexWorkspaceHostHint => 'http://192.168.1.10:38309';
+
+  @override
+  String get codexWorkspaceConnectButton => 'Connect';
+
+  @override
+  String get codexWorkspaceForgetButton => 'Forget';
+
+  @override
+  String get codexWorkspaceRefreshTooltip => 'Refresh workspace';
+
+  @override
+  String get codexWorkspaceStatusIdle => 'Idle';
+
+  @override
+  String get codexWorkspaceStatusConnecting => 'Connecting';
+
+  @override
+  String get codexWorkspaceStatusConnected => 'Connected';
+
+  @override
+  String get codexWorkspaceStatusError => 'Error';
+
+  @override
+  String get codexWorkspaceErrorLabel => 'Connection Error';
+
+  @override
+  String get codexWorkspaceHostSectionTitle => 'Host Info';
+
+  @override
+  String get codexWorkspaceNoHostConfigured => 'No host connected yet.';
+
+  @override
+  String get codexWorkspaceHostServerNameLabel => 'Server Name';
+
+  @override
+  String get codexWorkspaceHostCodexHomeLabel => 'Codex Home';
+
+  @override
+  String get codexWorkspaceHostCurrentDirectoryLabel => 'Current Directory';
+
+  @override
+  String get codexWorkspaceHostModelProviderLabel => 'Model Provider';
+
+  @override
+  String get codexWorkspaceHostVersionLabel => 'Version';
+
+  @override
+  String get codexWorkspaceSessionsSectionTitle => 'Sessions';
+
+  @override
+  String get codexWorkspaceSessionsEmpty => 'No sessions available.';
+
+  @override
+  String get codexWorkspaceSessionDetailTitle => 'Session Detail';
+
+  @override
+  String get codexWorkspaceSessionPreviewLabel => 'Preview';
+
+  @override
+  String get codexWorkspaceSessionFirstUserMessageLabel => 'First User Message';
+
+  @override
+  String get codexWorkspaceSessionModelProviderLabel => 'Model Provider';
+
+  @override
+  String get codexWorkspaceSessionModelLabel => 'Model';
+
+  @override
+  String get codexWorkspaceSessionReasoningEffortLabel => 'Reasoning Effort';
+
+  @override
+  String get codexWorkspaceSessionSourceLabel => 'Source';
+
+  @override
+  String get codexWorkspaceSessionConversationTitle => 'Conversation';
+
+  @override
+  String get codexWorkspaceSessionConversationEmpty =>
+      'No replayable conversation messages yet.';
+
+  @override
+  String get codexWorkspaceSessionUserRole => 'User';
+
+  @override
+  String get codexWorkspaceSessionAssistantRole => 'Assistant';
+
+  @override
+  String get codexWorkspaceSessionEnvironmentTitle => 'Environment';
+
+  @override
+  String get codexWorkspaceSessionCreatedAtLabel => 'Created At';
+
+  @override
+  String get codexWorkspaceSessionUpdatedAtLabel => 'Updated At';
+
+  @override
+  String get codexWorkspaceSessionCwdLabel => 'Working Directory';
+
+  @override
+  String get codexWorkspaceSessionCliVersionLabel => 'CLI Version';
+
+  @override
+  String get codexWorkspaceSessionApprovalModeLabel => 'Approval Mode';
+
+  @override
+  String get codexWorkspaceSessionSandboxPolicyLabel => 'Sandbox Policy';
+
+  @override
+  String get codexWorkspaceSessionExtraTitle => 'Extra';
+
+  @override
+  String get codexWorkspaceSessionGitBranchLabel => 'Git Branch';
+
+  @override
+  String get codexWorkspaceSessionGitCommitLabel => 'Git Commit';
+
+  @override
+  String get codexWorkspaceSessionAgentLabel => 'Agent';
+
+  @override
+  String get codexWorkspaceSessionStatusIdle => 'Idle';
+
+  @override
+  String get codexWorkspaceSessionStatusRunning => 'Running';
+
+  @override
+  String get codexWorkspaceSessionStatusWaitingApproval =>
+      'Waiting for approval';
+
+  @override
+  String get codexWorkspaceSessionStatusSystemError => 'System error';
+
+  @override
+  String get codexWorkspaceSessionStatusNotLoaded => 'Not loaded';
+
+  @override
+  String get codexWorkspaceSessionListTooltip => 'Open session list';
+
+  @override
+  String get codexWorkspaceSessionCurrentChip => 'Current';
+
+  @override
+  String get codexWorkspaceSessionInterruptTooltip => 'Interrupt session';
+
+  @override
+  String get codexWorkspaceSessionInputHint => 'Continue this Codex session…';
+
+  @override
+  String get codexWorkspaceSessionApprovalsTitle => 'Pending Approvals';
+
+  @override
+  String get codexWorkspaceSessionApprovalCommandExecution =>
+      'Command execution approval';
+
+  @override
+  String get codexWorkspaceSessionApprovalFileChange => 'File change approval';
+
+  @override
+  String get codexWorkspaceSessionApprovalCommandLabel => 'Command';
+
+  @override
+  String get codexWorkspaceSessionApprovalGrantRootLabel => 'Grant Root';
+
+  @override
+  String get codexWorkspaceSessionApproveButton => 'Approve';
+
+  @override
+  String get codexWorkspaceSessionDenyButton => 'Deny';
+
+  @override
+  String codexWorkspaceSessionActionError(String error) {
+    return 'Action failed: $error';
+  }
 
   @override
   String get settingsPageDataSection => 'Data';
@@ -445,6 +637,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String homePageClearContextWithCount(String actual, String configured) {
     return 'Clear Context ($actual/$configured)';
   }
+
+  @override
+  String get homePageNewSessionSheetTitle => 'New Session';
+
+  @override
+  String get homePageNewSessionSheetSubtitle =>
+      'Choose the type of session to open next.';
+
+  @override
+  String get homePageNewSessionChatLabel => 'Chat';
+
+  @override
+  String get homePageNewSessionChatSubtitle =>
+      'Start a normal Kelivo chat conversation.';
+
+  @override
+  String get homePageNewSessionCodexWorkspaceLabel => 'Codex Workspace';
+
+  @override
+  String get homePageNewSessionCodexWorkspaceSubtitle =>
+      'Open Codex host connection and remote session browsing.';
 
   @override
   String get homePageDefaultAssistant => 'Default Assistant';

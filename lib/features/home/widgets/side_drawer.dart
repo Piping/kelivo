@@ -10,6 +10,7 @@ import '../../../core/services/api/chat_api_service.dart';
 import '../../../core/services/logging/flutter_logger.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/backup_reminder_provider.dart';
+import '../../../core/models/codex_remote_session.dart';
 import '../../../core/models/chat_item.dart';
 import '../../../core/providers/user_provider.dart';
 import '../../settings/pages/settings_page.dart';
@@ -28,11 +29,11 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/snackbar.dart';
+import '../../../shared/widgets/sidebar_panel_shell.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:animations/animations.dart';
 import '../../../utils/sandbox_path_resolver.dart';
 import '../../../utils/avatar_cache.dart';
-import 'dart:ui' as ui;
 import '../../../shared/widgets/ios_tactile.dart';
 import '../../../core/services/haptics.dart';
 import '../../../desktop/desktop_context_menu.dart';
@@ -56,6 +57,10 @@ class SideDrawer extends StatefulWidget {
     this.onNewConversation,
     this.closePickerTicker,
     this.loadingConversationIds = const <String>{},
+    this.codexSessions = const <CodexRemoteSession>[],
+    this.activeCodexSessionId,
+    this.onSelectCodexSession,
+    this.onOpenCodexWorkspace,
     this.embedded = false,
     this.embeddedWidth,
     this.showBottomBar = true,
@@ -77,6 +82,11 @@ class SideDrawer extends StatefulWidget {
   final FutureOr<void> Function({bool closeDrawer})? onNewConversation;
   final ValueNotifier<int>? closePickerTicker;
   final Set<String> loadingConversationIds;
+  final List<CodexRemoteSession> codexSessions;
+  final String? activeCodexSessionId;
+  final FutureOr<void> Function(String id, {bool closeDrawer})?
+  onSelectCodexSession;
+  final FutureOr<void> Function({bool closeDrawer})? onOpenCodexWorkspace;
   final bool
   embedded; // when true, render as a fixed side panel instead of a Drawer
   final double? embeddedWidth; // optional explicit width for embedded mode
@@ -1222,6 +1232,13 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
         .where((c) => !(chatService.getConversation(c.id)?.isPinned ?? false))
         .toList();
     final groups = _groupByDate(context, rest);
+    final codexSessions = _query.trim().isEmpty
+        ? widget.codexSessions
+        : widget.codexSessions.where((session) {
+            final query = _query.toLowerCase();
+            return session.displayTitle.toLowerCase().contains(query) ||
+                session.preview.toLowerCase().contains(query);
+          }).toList();
 
     // Avatar renderer: emoji / url / file / default initial
     Widget avatarWidget(String name, UserProvider up, {double size = 40}) {
@@ -2033,6 +2050,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                         cs,
                         textBase,
                         chatService,
+                        codexSessions,
                         pinnedList,
                         groups,
                         includeUpdateBanner: true,
@@ -2063,6 +2081,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                           cs,
                           textBase,
                           chatService,
+                          codexSessions,
                           pinnedList,
                           groups,
                           includeUpdateBanner: true,
@@ -2081,6 +2100,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                       cs,
                       textBase,
                       chatService,
+                      codexSessions,
                       pinnedList,
                       groups,
                       includeUpdateBanner: true,
@@ -2217,21 +2237,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       ),
     );
 
-    if (widget.embedded) {
-      return ClipRect(
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: Material(
-            color: cs.surface.withValues(alpha: 0.60),
-            child: SizedBox(width: widget.embeddedWidth ?? 300, child: inner),
-          ),
-        ),
-      );
-    }
-
-    return Drawer(
-      backgroundColor: cs.surface,
-      width: MediaQuery.sizeOf(context).width,
+    return SidebarPanelShell(
+      embedded: widget.embedded,
+      embeddedWidth: widget.embeddedWidth,
+      drawerWidth: MediaQuery.sizeOf(context).width,
       child: inner,
     );
   }
@@ -3248,6 +3257,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     ColorScheme cs,
     Color textBase,
     ChatService chatService,
+    List<CodexRemoteSession> codexSessions,
     List<ChatItem> pinnedList,
     List<_ChatGroup> groups, {
     bool includeUpdateBanner = false,
@@ -3337,6 +3347,61 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           },
         ),
       );
+    }
+
+    if (widget.onOpenCodexWorkspace != null) {
+      final l10n = AppLocalizations.of(context)!;
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _CodexDrawerWorkspaceCard(
+            title: l10n.settingsPageCodexWorkspace,
+            onTap: () {
+              final closeDrawer = !context
+                  .read<SettingsProvider>()
+                  .keepSidebarOpenOnTopicTap;
+              widget.onOpenCodexWorkspace?.call(closeDrawer: closeDrawer);
+            },
+          ),
+        ),
+      );
+
+      if (codexSessions.isNotEmpty) {
+        children.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 0, 8),
+            child: Text(
+              l10n.codexWorkspaceSessionsSectionTitle,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: cs.primary,
+              ),
+            ),
+          ),
+        );
+        children.add(
+          Column(
+            children: [
+              for (final session in codexSessions)
+                _CodexSessionDrawerTile(
+                  session: session,
+                  selected: widget.activeCodexSessionId == session.id,
+                  onTap: () {
+                    final closeDrawer = !context
+                        .read<SettingsProvider>()
+                        .keepSidebarOpenOnTopicTap;
+                    widget.onSelectCodexSession?.call(
+                      session.id,
+                      closeDrawer: closeDrawer,
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+        children.add(const SizedBox(height: 10));
+      }
     }
 
     children.add(
@@ -3500,6 +3565,121 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     );
 
     return Column(children: children);
+  }
+}
+
+class _CodexDrawerWorkspaceCard extends StatelessWidget {
+  const _CodexDrawerWorkspaceCard({required this.title, required this.onTap});
+
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final embedded =
+        context.findAncestorWidgetOfExactType<SideDrawer>()?.embedded ?? false;
+    return IosCardPress(
+      baseColor: embedded ? Colors.transparent : cs.surface,
+      borderRadius: BorderRadius.circular(16),
+      haptics: false,
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: cs.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(Lucide.Cable, size: 15, color: cs.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
+            ),
+          ),
+          Icon(
+            Lucide.ChevronRight,
+            size: 16,
+            color: cs.onSurface.withValues(alpha: 0.55),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CodexSessionDrawerTile extends StatelessWidget {
+  const _CodexSessionDrawerTile({
+    required this.session,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CodexRemoteSession session;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final embedded =
+        context.findAncestorWidgetOfExactType<SideDrawer>()?.embedded ?? false;
+    final baseColor = selected
+        ? cs.primary.withValues(alpha: embedded ? 0.16 : 0.12)
+        : (embedded ? Colors.transparent : cs.surface);
+    final titleColor = selected ? cs.primary : cs.onSurface;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: IosCardPress(
+        baseColor: baseColor,
+        borderRadius: BorderRadius.circular(16),
+        haptics: false,
+        onTap: onTap,
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              session.displayTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: titleColor,
+              ),
+            ),
+            if (session.preview.trim().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                session.preview,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.3,
+                  color: cs.onSurface.withValues(alpha: 0.62),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 

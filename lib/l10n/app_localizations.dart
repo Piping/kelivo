@@ -220,6 +220,12 @@ abstract class AppLocalizations {
   /// **'MCP'**
   String get settingsPageMcp;
 
+  /// No description provided for @settingsPageCodexWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Codex Workspace'**
+  String get settingsPageCodexWorkspace;
+
   /// No description provided for @settingsPageQuickPhrase.
   ///
   /// In en, this message translates to:
@@ -231,6 +237,372 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Instruction Injection'**
   String get settingsPageInstructionInjection;
+
+  /// No description provided for @codexWorkspacePageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Codex Workspace'**
+  String get codexWorkspacePageTitle;
+
+  /// No description provided for @codexWorkspaceConnectSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote Host'**
+  String get codexWorkspaceConnectSectionTitle;
+
+  /// No description provided for @codexWorkspaceConnectSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Kelivo to a running codex-remote host on your network.'**
+  String get codexWorkspaceConnectSectionSubtitle;
+
+  /// No description provided for @codexWorkspaceHostLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Host Address'**
+  String get codexWorkspaceHostLabel;
+
+  /// No description provided for @codexWorkspaceHostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'http://192.168.1.10:38309'**
+  String get codexWorkspaceHostHint;
+
+  /// No description provided for @codexWorkspaceConnectButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get codexWorkspaceConnectButton;
+
+  /// No description provided for @codexWorkspaceForgetButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget'**
+  String get codexWorkspaceForgetButton;
+
+  /// No description provided for @codexWorkspaceRefreshTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh workspace'**
+  String get codexWorkspaceRefreshTooltip;
+
+  /// No description provided for @codexWorkspaceStatusIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get codexWorkspaceStatusIdle;
+
+  /// No description provided for @codexWorkspaceStatusConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting'**
+  String get codexWorkspaceStatusConnecting;
+
+  /// No description provided for @codexWorkspaceStatusConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get codexWorkspaceStatusConnected;
+
+  /// No description provided for @codexWorkspaceStatusError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get codexWorkspaceStatusError;
+
+  /// No description provided for @codexWorkspaceErrorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Error'**
+  String get codexWorkspaceErrorLabel;
+
+  /// No description provided for @codexWorkspaceHostSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Host Info'**
+  String get codexWorkspaceHostSectionTitle;
+
+  /// No description provided for @codexWorkspaceNoHostConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No host connected yet.'**
+  String get codexWorkspaceNoHostConfigured;
+
+  /// No description provided for @codexWorkspaceHostServerNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server Name'**
+  String get codexWorkspaceHostServerNameLabel;
+
+  /// No description provided for @codexWorkspaceHostCodexHomeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Codex Home'**
+  String get codexWorkspaceHostCodexHomeLabel;
+
+  /// No description provided for @codexWorkspaceHostCurrentDirectoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Directory'**
+  String get codexWorkspaceHostCurrentDirectoryLabel;
+
+  /// No description provided for @codexWorkspaceHostModelProviderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Provider'**
+  String get codexWorkspaceHostModelProviderLabel;
+
+  /// No description provided for @codexWorkspaceHostVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get codexWorkspaceHostVersionLabel;
+
+  /// No description provided for @codexWorkspaceSessionsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get codexWorkspaceSessionsSectionTitle;
+
+  /// No description provided for @codexWorkspaceSessionsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions available.'**
+  String get codexWorkspaceSessionsEmpty;
+
+  /// No description provided for @codexWorkspaceSessionDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session Detail'**
+  String get codexWorkspaceSessionDetailTitle;
+
+  /// No description provided for @codexWorkspaceSessionPreviewLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get codexWorkspaceSessionPreviewLabel;
+
+  /// No description provided for @codexWorkspaceSessionFirstUserMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'First User Message'**
+  String get codexWorkspaceSessionFirstUserMessageLabel;
+
+  /// No description provided for @codexWorkspaceSessionModelProviderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Provider'**
+  String get codexWorkspaceSessionModelProviderLabel;
+
+  /// No description provided for @codexWorkspaceSessionModelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get codexWorkspaceSessionModelLabel;
+
+  /// No description provided for @codexWorkspaceSessionReasoningEffortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning Effort'**
+  String get codexWorkspaceSessionReasoningEffortLabel;
+
+  /// No description provided for @codexWorkspaceSessionSourceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get codexWorkspaceSessionSourceLabel;
+
+  /// No description provided for @codexWorkspaceSessionConversationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation'**
+  String get codexWorkspaceSessionConversationTitle;
+
+  /// No description provided for @codexWorkspaceSessionConversationEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No replayable conversation messages yet.'**
+  String get codexWorkspaceSessionConversationEmpty;
+
+  /// No description provided for @codexWorkspaceSessionUserRole.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get codexWorkspaceSessionUserRole;
+
+  /// No description provided for @codexWorkspaceSessionAssistantRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant'**
+  String get codexWorkspaceSessionAssistantRole;
+
+  /// No description provided for @codexWorkspaceSessionEnvironmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Environment'**
+  String get codexWorkspaceSessionEnvironmentTitle;
+
+  /// No description provided for @codexWorkspaceSessionCreatedAtLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Created At'**
+  String get codexWorkspaceSessionCreatedAtLabel;
+
+  /// No description provided for @codexWorkspaceSessionUpdatedAtLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated At'**
+  String get codexWorkspaceSessionUpdatedAtLabel;
+
+  /// No description provided for @codexWorkspaceSessionCwdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Working Directory'**
+  String get codexWorkspaceSessionCwdLabel;
+
+  /// No description provided for @codexWorkspaceSessionCliVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'CLI Version'**
+  String get codexWorkspaceSessionCliVersionLabel;
+
+  /// No description provided for @codexWorkspaceSessionApprovalModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval Mode'**
+  String get codexWorkspaceSessionApprovalModeLabel;
+
+  /// No description provided for @codexWorkspaceSessionSandboxPolicyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sandbox Policy'**
+  String get codexWorkspaceSessionSandboxPolicyLabel;
+
+  /// No description provided for @codexWorkspaceSessionExtraTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra'**
+  String get codexWorkspaceSessionExtraTitle;
+
+  /// No description provided for @codexWorkspaceSessionGitBranchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Git Branch'**
+  String get codexWorkspaceSessionGitBranchLabel;
+
+  /// No description provided for @codexWorkspaceSessionGitCommitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Git Commit'**
+  String get codexWorkspaceSessionGitCommitLabel;
+
+  /// No description provided for @codexWorkspaceSessionAgentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get codexWorkspaceSessionAgentLabel;
+
+  /// No description provided for @codexWorkspaceSessionStatusIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get codexWorkspaceSessionStatusIdle;
+
+  /// No description provided for @codexWorkspaceSessionStatusRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get codexWorkspaceSessionStatusRunning;
+
+  /// No description provided for @codexWorkspaceSessionStatusWaitingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval'**
+  String get codexWorkspaceSessionStatusWaitingApproval;
+
+  /// No description provided for @codexWorkspaceSessionStatusSystemError.
+  ///
+  /// In en, this message translates to:
+  /// **'System error'**
+  String get codexWorkspaceSessionStatusSystemError;
+
+  /// No description provided for @codexWorkspaceSessionStatusNotLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded'**
+  String get codexWorkspaceSessionStatusNotLoaded;
+
+  /// No description provided for @codexWorkspaceSessionListTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Open session list'**
+  String get codexWorkspaceSessionListTooltip;
+
+  /// No description provided for @codexWorkspaceSessionCurrentChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get codexWorkspaceSessionCurrentChip;
+
+  /// No description provided for @codexWorkspaceSessionInterruptTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Interrupt session'**
+  String get codexWorkspaceSessionInterruptTooltip;
+
+  /// No description provided for @codexWorkspaceSessionInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue this Codex session…'**
+  String get codexWorkspaceSessionInputHint;
+
+  /// No description provided for @codexWorkspaceSessionApprovalsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Approvals'**
+  String get codexWorkspaceSessionApprovalsTitle;
+
+  /// No description provided for @codexWorkspaceSessionApprovalCommandExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Command execution approval'**
+  String get codexWorkspaceSessionApprovalCommandExecution;
+
+  /// No description provided for @codexWorkspaceSessionApprovalFileChange.
+  ///
+  /// In en, this message translates to:
+  /// **'File change approval'**
+  String get codexWorkspaceSessionApprovalFileChange;
+
+  /// No description provided for @codexWorkspaceSessionApprovalCommandLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Command'**
+  String get codexWorkspaceSessionApprovalCommandLabel;
+
+  /// No description provided for @codexWorkspaceSessionApprovalGrantRootLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant Root'**
+  String get codexWorkspaceSessionApprovalGrantRootLabel;
+
+  /// No description provided for @codexWorkspaceSessionApproveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get codexWorkspaceSessionApproveButton;
+
+  /// No description provided for @codexWorkspaceSessionDenyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Deny'**
+  String get codexWorkspaceSessionDenyButton;
+
+  /// No description provided for @codexWorkspaceSessionActionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Action failed: {error}'**
+  String codexWorkspaceSessionActionError(String error);
 
   /// No description provided for @settingsPageDataSection.
   ///
@@ -921,6 +1293,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear Context ({actual}/{configured})'**
   String homePageClearContextWithCount(String actual, String configured);
+
+  /// No description provided for @homePageNewSessionSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Session'**
+  String get homePageNewSessionSheetTitle;
+
+  /// No description provided for @homePageNewSessionSheetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the type of session to open next.'**
+  String get homePageNewSessionSheetSubtitle;
+
+  /// No description provided for @homePageNewSessionChatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get homePageNewSessionChatLabel;
+
+  /// No description provided for @homePageNewSessionChatSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a normal Kelivo chat conversation.'**
+  String get homePageNewSessionChatSubtitle;
+
+  /// No description provided for @homePageNewSessionCodexWorkspaceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Codex Workspace'**
+  String get homePageNewSessionCodexWorkspaceLabel;
+
+  /// No description provided for @homePageNewSessionCodexWorkspaceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Codex host connection and remote session browsing.'**
+  String get homePageNewSessionCodexWorkspaceSubtitle;
 
   /// No description provided for @homePageDefaultAssistant.
   ///

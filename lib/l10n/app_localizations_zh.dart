@@ -69,10 +69,199 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsPageMcp => 'MCP';
 
   @override
+  String get settingsPageCodexWorkspace => 'Codex 工作区';
+
+  @override
   String get settingsPageQuickPhrase => '快捷短语';
 
   @override
   String get settingsPageInstructionInjection => '指令注入';
+
+  @override
+  String get codexWorkspacePageTitle => 'Codex 工作区';
+
+  @override
+  String get codexWorkspaceConnectSectionTitle => '远程主机';
+
+  @override
+  String get codexWorkspaceConnectSectionSubtitle =>
+      '将 Kelivo 连接到你局域网内正在运行的 codex-remote 主机。';
+
+  @override
+  String get codexWorkspaceHostLabel => '主机地址';
+
+  @override
+  String get codexWorkspaceHostHint => 'http://192.168.1.10:38309';
+
+  @override
+  String get codexWorkspaceConnectButton => '连接';
+
+  @override
+  String get codexWorkspaceForgetButton => '清除';
+
+  @override
+  String get codexWorkspaceRefreshTooltip => '刷新工作区';
+
+  @override
+  String get codexWorkspaceStatusIdle => '未连接';
+
+  @override
+  String get codexWorkspaceStatusConnecting => '连接中';
+
+  @override
+  String get codexWorkspaceStatusConnected => '已连接';
+
+  @override
+  String get codexWorkspaceStatusError => '错误';
+
+  @override
+  String get codexWorkspaceErrorLabel => '连接错误';
+
+  @override
+  String get codexWorkspaceHostSectionTitle => '主机信息';
+
+  @override
+  String get codexWorkspaceNoHostConfigured => '还没有连接主机。';
+
+  @override
+  String get codexWorkspaceHostServerNameLabel => '服务器名称';
+
+  @override
+  String get codexWorkspaceHostCodexHomeLabel => 'Codex 主目录';
+
+  @override
+  String get codexWorkspaceHostCurrentDirectoryLabel => '当前目录';
+
+  @override
+  String get codexWorkspaceHostModelProviderLabel => '模型提供方';
+
+  @override
+  String get codexWorkspaceHostVersionLabel => '版本';
+
+  @override
+  String get codexWorkspaceSessionsSectionTitle => '会话';
+
+  @override
+  String get codexWorkspaceSessionsEmpty => '暂无可用会话。';
+
+  @override
+  String get codexWorkspaceSessionDetailTitle => '会话详情';
+
+  @override
+  String get codexWorkspaceSessionPreviewLabel => '预览';
+
+  @override
+  String get codexWorkspaceSessionFirstUserMessageLabel => '首条用户消息';
+
+  @override
+  String get codexWorkspaceSessionModelProviderLabel => '模型提供方';
+
+  @override
+  String get codexWorkspaceSessionModelLabel => '模型';
+
+  @override
+  String get codexWorkspaceSessionReasoningEffortLabel => '推理强度';
+
+  @override
+  String get codexWorkspaceSessionSourceLabel => '来源';
+
+  @override
+  String get codexWorkspaceSessionConversationTitle => '对话内容';
+
+  @override
+  String get codexWorkspaceSessionConversationEmpty => '当前还没有可回放的会话消息。';
+
+  @override
+  String get codexWorkspaceSessionUserRole => '用户';
+
+  @override
+  String get codexWorkspaceSessionAssistantRole => '助手';
+
+  @override
+  String get codexWorkspaceSessionEnvironmentTitle => '运行环境';
+
+  @override
+  String get codexWorkspaceSessionCreatedAtLabel => '创建时间';
+
+  @override
+  String get codexWorkspaceSessionUpdatedAtLabel => '更新时间';
+
+  @override
+  String get codexWorkspaceSessionCwdLabel => '工作目录';
+
+  @override
+  String get codexWorkspaceSessionCliVersionLabel => 'CLI 版本';
+
+  @override
+  String get codexWorkspaceSessionApprovalModeLabel => '审批模式';
+
+  @override
+  String get codexWorkspaceSessionSandboxPolicyLabel => '沙箱策略';
+
+  @override
+  String get codexWorkspaceSessionExtraTitle => '附加信息';
+
+  @override
+  String get codexWorkspaceSessionGitBranchLabel => 'Git 分支';
+
+  @override
+  String get codexWorkspaceSessionGitCommitLabel => 'Git 提交';
+
+  @override
+  String get codexWorkspaceSessionAgentLabel => 'Agent';
+
+  @override
+  String get codexWorkspaceSessionStatusIdle => '空闲';
+
+  @override
+  String get codexWorkspaceSessionStatusRunning => '运行中';
+
+  @override
+  String get codexWorkspaceSessionStatusWaitingApproval => '等待审批';
+
+  @override
+  String get codexWorkspaceSessionStatusSystemError => '系统错误';
+
+  @override
+  String get codexWorkspaceSessionStatusNotLoaded => '未加载';
+
+  @override
+  String get codexWorkspaceSessionListTooltip => '打开会话列表';
+
+  @override
+  String get codexWorkspaceSessionCurrentChip => '当前';
+
+  @override
+  String get codexWorkspaceSessionInterruptTooltip => '中断会话';
+
+  @override
+  String get codexWorkspaceSessionInputHint => '继续这个 Codex 会话…';
+
+  @override
+  String get codexWorkspaceSessionApprovalsTitle => '待处理审批';
+
+  @override
+  String get codexWorkspaceSessionApprovalCommandExecution => '命令执行审批';
+
+  @override
+  String get codexWorkspaceSessionApprovalFileChange => '文件变更审批';
+
+  @override
+  String get codexWorkspaceSessionApprovalCommandLabel => '命令';
+
+  @override
+  String get codexWorkspaceSessionApprovalGrantRootLabel => '授权根目录';
+
+  @override
+  String get codexWorkspaceSessionApproveButton => '批准';
+
+  @override
+  String get codexWorkspaceSessionDenyButton => '拒绝';
+
+  @override
+  String codexWorkspaceSessionActionError(String error) {
+    return '操作失败：$error';
+  }
 
   @override
   String get settingsPageDataSection => '数据设置';
@@ -442,6 +631,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String homePageClearContextWithCount(String actual, String configured) {
     return '清空上下文 ($actual/$configured)';
   }
+
+  @override
+  String get homePageNewSessionSheetTitle => '新会话';
+
+  @override
+  String get homePageNewSessionSheetSubtitle => '选择接下来要打开的会话类型。';
+
+  @override
+  String get homePageNewSessionChatLabel => '普通 Chat 会话';
+
+  @override
+  String get homePageNewSessionChatSubtitle => '开始一个普通的 Kelivo 聊天会话。';
+
+  @override
+  String get homePageNewSessionCodexWorkspaceLabel => 'Codex Workspace';
+
+  @override
+  String get homePageNewSessionCodexWorkspaceSubtitle =>
+      '打开 Codex 主机连接和远程会话浏览。';
 
   @override
   String get homePageDefaultAssistant => '默认助手';
@@ -4918,10 +5126,199 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get settingsPageMcp => 'MCP';
 
   @override
+  String get settingsPageCodexWorkspace => 'Codex 工作区';
+
+  @override
   String get settingsPageQuickPhrase => '快捷短语';
 
   @override
   String get settingsPageInstructionInjection => '指令注入';
+
+  @override
+  String get codexWorkspacePageTitle => 'Codex 工作区';
+
+  @override
+  String get codexWorkspaceConnectSectionTitle => '远程主机';
+
+  @override
+  String get codexWorkspaceConnectSectionSubtitle =>
+      '将 Kelivo 连接到你局域网内正在运行的 codex-remote 主机。';
+
+  @override
+  String get codexWorkspaceHostLabel => '主机地址';
+
+  @override
+  String get codexWorkspaceHostHint => 'http://192.168.1.10:38309';
+
+  @override
+  String get codexWorkspaceConnectButton => '连接';
+
+  @override
+  String get codexWorkspaceForgetButton => '清除';
+
+  @override
+  String get codexWorkspaceRefreshTooltip => '刷新工作区';
+
+  @override
+  String get codexWorkspaceStatusIdle => '未连接';
+
+  @override
+  String get codexWorkspaceStatusConnecting => '连接中';
+
+  @override
+  String get codexWorkspaceStatusConnected => '已连接';
+
+  @override
+  String get codexWorkspaceStatusError => '错误';
+
+  @override
+  String get codexWorkspaceErrorLabel => '连接错误';
+
+  @override
+  String get codexWorkspaceHostSectionTitle => '主机信息';
+
+  @override
+  String get codexWorkspaceNoHostConfigured => '还没有连接主机。';
+
+  @override
+  String get codexWorkspaceHostServerNameLabel => '服务器名称';
+
+  @override
+  String get codexWorkspaceHostCodexHomeLabel => 'Codex 主目录';
+
+  @override
+  String get codexWorkspaceHostCurrentDirectoryLabel => '当前目录';
+
+  @override
+  String get codexWorkspaceHostModelProviderLabel => '模型提供方';
+
+  @override
+  String get codexWorkspaceHostVersionLabel => '版本';
+
+  @override
+  String get codexWorkspaceSessionsSectionTitle => '会话';
+
+  @override
+  String get codexWorkspaceSessionsEmpty => '暂无可用会话。';
+
+  @override
+  String get codexWorkspaceSessionDetailTitle => '会话详情';
+
+  @override
+  String get codexWorkspaceSessionPreviewLabel => '预览';
+
+  @override
+  String get codexWorkspaceSessionFirstUserMessageLabel => '首条用户消息';
+
+  @override
+  String get codexWorkspaceSessionModelProviderLabel => '模型提供方';
+
+  @override
+  String get codexWorkspaceSessionModelLabel => '模型';
+
+  @override
+  String get codexWorkspaceSessionReasoningEffortLabel => '推理强度';
+
+  @override
+  String get codexWorkspaceSessionSourceLabel => '来源';
+
+  @override
+  String get codexWorkspaceSessionConversationTitle => '对话内容';
+
+  @override
+  String get codexWorkspaceSessionConversationEmpty => '当前还没有可回放的会话消息。';
+
+  @override
+  String get codexWorkspaceSessionUserRole => '用户';
+
+  @override
+  String get codexWorkspaceSessionAssistantRole => '助手';
+
+  @override
+  String get codexWorkspaceSessionEnvironmentTitle => '运行环境';
+
+  @override
+  String get codexWorkspaceSessionCreatedAtLabel => '创建时间';
+
+  @override
+  String get codexWorkspaceSessionUpdatedAtLabel => '更新时间';
+
+  @override
+  String get codexWorkspaceSessionCwdLabel => '工作目录';
+
+  @override
+  String get codexWorkspaceSessionCliVersionLabel => 'CLI 版本';
+
+  @override
+  String get codexWorkspaceSessionApprovalModeLabel => '审批模式';
+
+  @override
+  String get codexWorkspaceSessionSandboxPolicyLabel => '沙箱策略';
+
+  @override
+  String get codexWorkspaceSessionExtraTitle => '附加信息';
+
+  @override
+  String get codexWorkspaceSessionGitBranchLabel => 'Git 分支';
+
+  @override
+  String get codexWorkspaceSessionGitCommitLabel => 'Git 提交';
+
+  @override
+  String get codexWorkspaceSessionAgentLabel => 'Agent';
+
+  @override
+  String get codexWorkspaceSessionStatusIdle => '空闲';
+
+  @override
+  String get codexWorkspaceSessionStatusRunning => '运行中';
+
+  @override
+  String get codexWorkspaceSessionStatusWaitingApproval => '等待审批';
+
+  @override
+  String get codexWorkspaceSessionStatusSystemError => '系统错误';
+
+  @override
+  String get codexWorkspaceSessionStatusNotLoaded => '未加载';
+
+  @override
+  String get codexWorkspaceSessionListTooltip => '打开会话列表';
+
+  @override
+  String get codexWorkspaceSessionCurrentChip => '当前';
+
+  @override
+  String get codexWorkspaceSessionInterruptTooltip => '中断会话';
+
+  @override
+  String get codexWorkspaceSessionInputHint => '继续这个 Codex 会话…';
+
+  @override
+  String get codexWorkspaceSessionApprovalsTitle => '待处理审批';
+
+  @override
+  String get codexWorkspaceSessionApprovalCommandExecution => '命令执行审批';
+
+  @override
+  String get codexWorkspaceSessionApprovalFileChange => '文件变更审批';
+
+  @override
+  String get codexWorkspaceSessionApprovalCommandLabel => '命令';
+
+  @override
+  String get codexWorkspaceSessionApprovalGrantRootLabel => '授权根目录';
+
+  @override
+  String get codexWorkspaceSessionApproveButton => '批准';
+
+  @override
+  String get codexWorkspaceSessionDenyButton => '拒绝';
+
+  @override
+  String codexWorkspaceSessionActionError(String error) {
+    return '操作失败：$error';
+  }
 
   @override
   String get settingsPageDataSection => '数据设置';
@@ -5291,6 +5688,25 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String homePageClearContextWithCount(String actual, String configured) {
     return '清空上下文 ($actual/$configured)';
   }
+
+  @override
+  String get homePageNewSessionSheetTitle => '新会话';
+
+  @override
+  String get homePageNewSessionSheetSubtitle => '选择接下来要打开的会话类型。';
+
+  @override
+  String get homePageNewSessionChatLabel => '普通 Chat 会话';
+
+  @override
+  String get homePageNewSessionChatSubtitle => '开始一个普通的 Kelivo 聊天会话。';
+
+  @override
+  String get homePageNewSessionCodexWorkspaceLabel => 'Codex Workspace';
+
+  @override
+  String get homePageNewSessionCodexWorkspaceSubtitle =>
+      '打开 Codex 主机连接和远程会话浏览。';
 
   @override
   String get homePageDefaultAssistant => '默认助手';
@@ -9767,10 +10183,199 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsPageMcp => 'MCP';
 
   @override
+  String get settingsPageCodexWorkspace => 'Codex 工作區';
+
+  @override
   String get settingsPageQuickPhrase => '快捷短语';
 
   @override
   String get settingsPageInstructionInjection => '指令注入';
+
+  @override
+  String get codexWorkspacePageTitle => 'Codex 工作區';
+
+  @override
+  String get codexWorkspaceConnectSectionTitle => '遠端主機';
+
+  @override
+  String get codexWorkspaceConnectSectionSubtitle =>
+      '將 Kelivo 連接到你區域網路內正在執行的 codex-remote 主機。';
+
+  @override
+  String get codexWorkspaceHostLabel => '主機位址';
+
+  @override
+  String get codexWorkspaceHostHint => 'http://192.168.1.10:38309';
+
+  @override
+  String get codexWorkspaceConnectButton => '連接';
+
+  @override
+  String get codexWorkspaceForgetButton => '清除';
+
+  @override
+  String get codexWorkspaceRefreshTooltip => '重新整理工作區';
+
+  @override
+  String get codexWorkspaceStatusIdle => '未連接';
+
+  @override
+  String get codexWorkspaceStatusConnecting => '連接中';
+
+  @override
+  String get codexWorkspaceStatusConnected => '已連接';
+
+  @override
+  String get codexWorkspaceStatusError => '錯誤';
+
+  @override
+  String get codexWorkspaceErrorLabel => '連接錯誤';
+
+  @override
+  String get codexWorkspaceHostSectionTitle => '主機資訊';
+
+  @override
+  String get codexWorkspaceNoHostConfigured => '尚未連接主機。';
+
+  @override
+  String get codexWorkspaceHostServerNameLabel => '伺服器名稱';
+
+  @override
+  String get codexWorkspaceHostCodexHomeLabel => 'Codex 主目錄';
+
+  @override
+  String get codexWorkspaceHostCurrentDirectoryLabel => '目前目錄';
+
+  @override
+  String get codexWorkspaceHostModelProviderLabel => '模型提供方';
+
+  @override
+  String get codexWorkspaceHostVersionLabel => '版本';
+
+  @override
+  String get codexWorkspaceSessionsSectionTitle => '工作階段';
+
+  @override
+  String get codexWorkspaceSessionsEmpty => '目前沒有可用工作階段。';
+
+  @override
+  String get codexWorkspaceSessionDetailTitle => '工作階段詳情';
+
+  @override
+  String get codexWorkspaceSessionPreviewLabel => '預覽';
+
+  @override
+  String get codexWorkspaceSessionFirstUserMessageLabel => '首條使用者訊息';
+
+  @override
+  String get codexWorkspaceSessionModelProviderLabel => '模型提供方';
+
+  @override
+  String get codexWorkspaceSessionModelLabel => '模型';
+
+  @override
+  String get codexWorkspaceSessionReasoningEffortLabel => '推理強度';
+
+  @override
+  String get codexWorkspaceSessionSourceLabel => '來源';
+
+  @override
+  String get codexWorkspaceSessionConversationTitle => '對話內容';
+
+  @override
+  String get codexWorkspaceSessionConversationEmpty => '目前還沒有可回放的會話訊息。';
+
+  @override
+  String get codexWorkspaceSessionUserRole => '使用者';
+
+  @override
+  String get codexWorkspaceSessionAssistantRole => '助理';
+
+  @override
+  String get codexWorkspaceSessionEnvironmentTitle => '執行環境';
+
+  @override
+  String get codexWorkspaceSessionCreatedAtLabel => '建立時間';
+
+  @override
+  String get codexWorkspaceSessionUpdatedAtLabel => '更新時間';
+
+  @override
+  String get codexWorkspaceSessionCwdLabel => '工作目錄';
+
+  @override
+  String get codexWorkspaceSessionCliVersionLabel => 'CLI 版本';
+
+  @override
+  String get codexWorkspaceSessionApprovalModeLabel => '審批模式';
+
+  @override
+  String get codexWorkspaceSessionSandboxPolicyLabel => '沙箱策略';
+
+  @override
+  String get codexWorkspaceSessionExtraTitle => '附加資訊';
+
+  @override
+  String get codexWorkspaceSessionGitBranchLabel => 'Git 分支';
+
+  @override
+  String get codexWorkspaceSessionGitCommitLabel => 'Git 提交';
+
+  @override
+  String get codexWorkspaceSessionAgentLabel => 'Agent';
+
+  @override
+  String get codexWorkspaceSessionStatusIdle => '空閒';
+
+  @override
+  String get codexWorkspaceSessionStatusRunning => '執行中';
+
+  @override
+  String get codexWorkspaceSessionStatusWaitingApproval => '等待審批';
+
+  @override
+  String get codexWorkspaceSessionStatusSystemError => '系統錯誤';
+
+  @override
+  String get codexWorkspaceSessionStatusNotLoaded => '未載入';
+
+  @override
+  String get codexWorkspaceSessionListTooltip => '打開工作階段列表';
+
+  @override
+  String get codexWorkspaceSessionCurrentChip => '目前';
+
+  @override
+  String get codexWorkspaceSessionInterruptTooltip => '中斷工作階段';
+
+  @override
+  String get codexWorkspaceSessionInputHint => '繼續這個 Codex 工作階段…';
+
+  @override
+  String get codexWorkspaceSessionApprovalsTitle => '待處理審批';
+
+  @override
+  String get codexWorkspaceSessionApprovalCommandExecution => '命令執行審批';
+
+  @override
+  String get codexWorkspaceSessionApprovalFileChange => '檔案變更審批';
+
+  @override
+  String get codexWorkspaceSessionApprovalCommandLabel => '命令';
+
+  @override
+  String get codexWorkspaceSessionApprovalGrantRootLabel => '授權根目錄';
+
+  @override
+  String get codexWorkspaceSessionApproveButton => '批准';
+
+  @override
+  String get codexWorkspaceSessionDenyButton => '拒絕';
+
+  @override
+  String codexWorkspaceSessionActionError(String error) {
+    return '操作失敗：$error';
+  }
 
   @override
   String get settingsPageDataSection => '資料設定';
@@ -10140,6 +10745,25 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String homePageClearContextWithCount(String actual, String configured) {
     return '清空上下文 ($actual/$configured)';
   }
+
+  @override
+  String get homePageNewSessionSheetTitle => '新會話';
+
+  @override
+  String get homePageNewSessionSheetSubtitle => '選擇接下來要開啟的會話類型。';
+
+  @override
+  String get homePageNewSessionChatLabel => '普通 Chat 會話';
+
+  @override
+  String get homePageNewSessionChatSubtitle => '開始一個普通的 Kelivo 聊天會話。';
+
+  @override
+  String get homePageNewSessionCodexWorkspaceLabel => 'Codex Workspace';
+
+  @override
+  String get homePageNewSessionCodexWorkspaceSubtitle =>
+      '開啟 Codex 主機連接與遠端會話瀏覽。';
 
   @override
   String get homePageDefaultAssistant => '預設助理';
