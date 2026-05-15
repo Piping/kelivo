@@ -61,5 +61,7 @@ internationalization.md
 .claude/settings.local.json
 /.codex/
 /.agent/
-/.agents/
+/.agents/*
+!/.agents/skills/
+!/.agents/skills/**
 /skills-lock.json

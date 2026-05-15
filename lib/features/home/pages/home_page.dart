@@ -13,7 +13,6 @@ import '../../../shared/widgets/ios_form_text_field.dart';
 import '../../../shared/widgets/ios_tactile.dart';
 import '../../../shared/widgets/loading_dialog_card.dart';
 import '../../../shared/widgets/snackbar.dart';
-import '../../../shared/widgets/ios_tactile.dart';
 import '../../../theme/design_tokens.dart';
 import '../../../icons/lucide_adapter.dart';
 import '../../../core/providers/settings_provider.dart';
@@ -36,7 +35,6 @@ import '../../../desktop/mini_map_popover.dart';
 import '../../../desktop/quick_phrase_popover.dart';
 import '../../../desktop/instruction_injection_popover.dart';
 import '../../../desktop/world_book_popover.dart';
-import '../../../icons/lucide_adapter.dart';
 import '../../chat/widgets/bottom_tools_sheet.dart';
 import '../../chat/widgets/context_management_sheet.dart';
 import '../../chat/widgets/reasoning_budget_sheet.dart';
@@ -392,7 +390,6 @@ class _HomePageState extends State<HomePage>
   _HomeSurfaceMode _surfaceMode = _HomeSurfaceMode.chat;
   String? _activeCodexSessionId;
   CodexRemoteSession? _activeCodexSession;
-  final List<String> _openedCodexSessionIds = <String>[];
   bool _codexToolbarRefreshing = false;
   bool _codexToolbarInterrupting = false;
 
@@ -561,7 +558,6 @@ class _HomePageState extends State<HomePage>
       _activeCodexSessionId = sessionId;
       _activeCodexSession = fallback;
     });
-    _rememberOpenedCodexSession(sessionId);
     await provider.refreshWorkspace();
     final detail = await provider.refreshSessionDetail(
       sessionId,
@@ -573,7 +569,6 @@ class _HomePageState extends State<HomePage>
     setState(() {
       _activeCodexSession = detail;
     });
-    _rememberOpenedCodexSession(sessionId);
   }
 
   CodexRemoteSession? _currentCodexSession(CodexRemoteProvider provider) {
@@ -596,38 +591,6 @@ class _HomePageState extends State<HomePage>
       }
     }
     return null;
-  }
-
-  List<CodexRemoteSession> _openedCodexSessions(CodexRemoteProvider provider) {
-    final result = <CodexRemoteSession>[];
-    for (final sessionId in _openedCodexSessionIds) {
-      final session =
-          provider.sessionDetailFor(sessionId) ??
-          (sessionId == _activeCodexSessionId ? _activeCodexSession : null) ??
-          _findCodexSession(provider, sessionId);
-      if (session != null) {
-        result.add(session);
-      }
-    }
-    return result;
-  }
-
-  void _rememberOpenedCodexSession(String sessionId) {
-    final next = <String>[
-      sessionId,
-      ..._openedCodexSessionIds.where((id) => id != sessionId),
-    ];
-    if (!mounted) {
-      _openedCodexSessionIds
-        ..clear()
-        ..addAll(next);
-      return;
-    }
-    setState(() {
-      _openedCodexSessionIds
-        ..clear()
-        ..addAll(next);
-    });
   }
 
   // ============================================================================
@@ -698,7 +661,7 @@ class _HomePageState extends State<HomePage>
       drawerController: _drawerController,
       assistantPickerCloseTick: _assistantPickerCloseTick,
       loadingConversationIds: _controller.loadingConversationIds,
-      codexSessions: _openedCodexSessions(codexProvider),
+      codexSessions: codexProvider.sessions,
       activeCodexSessionId: _surfaceMode == _HomeSurfaceMode.codexSession
           ? _activeCodexSessionId
           : null,
@@ -862,7 +825,7 @@ class _HomePageState extends State<HomePage>
       scaffoldKey: _scaffoldKey,
       assistantPickerCloseTick: _assistantPickerCloseTick,
       loadingConversationIds: _controller.loadingConversationIds,
-      codexSessions: _openedCodexSessions(codexProvider),
+      codexSessions: codexProvider.sessions,
       activeCodexSessionId: _surfaceMode == _HomeSurfaceMode.codexSession
           ? _activeCodexSessionId
           : null,

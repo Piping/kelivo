@@ -115,12 +115,12 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       defaultTargetPlatform == TargetPlatform.linux;
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
-  final GlobalKey _assistantTileKey = GlobalKey();
   OverlayEntry? _assistantPickerEntry;
   ValueNotifier<int>? _closeTicker;
   bool _assistantsExpanded = false;
+  bool _codexExpanded = true;
+  bool _chatsExpanded = true;
   final ScrollController _listController = ScrollController();
-  bool _assistantHeaderHovered = false;
   double _mobileSearchSwipeDx = 0;
   bool _mobileSearchSwipeHandled = false;
   final FocusNode _mobileSearchFocusNode = FocusNode();
@@ -1930,101 +1930,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                     if (!widget.globalSearchMode) ...[
                       SizedBox(height: _isDesktop ? 8 : 12),
 
-                      // 桌面端：替换为 Tab（助手 / 话题）
                       if (useTabs)
                         _DesktopSidebarTabs(
                           textColor: textBase,
                           controller: _tabController!,
-                        )
-                      else if (!assistOnly && !topicsOnly)
-                        // 当前助手区域（固定）
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: KeyedSubtree(
-                            key: _assistantTileKey,
-                            child: MouseRegion(
-                              onEnter: (_) {
-                                if (_isDesktop) {
-                                  setState(
-                                    () => _assistantHeaderHovered = true,
-                                  );
-                                }
-                              },
-                              onExit: (_) {
-                                if (_isDesktop) {
-                                  setState(
-                                    () => _assistantHeaderHovered = false,
-                                  );
-                                }
-                              },
-                              cursor: _isDesktop
-                                  ? SystemMouseCursors.click
-                                  : SystemMouseCursors.basic,
-                              child: IosCardPress(
-                                baseColor: (() {
-                                  final embedded = widget.embedded;
-                                  final base = embedded
-                                      ? Colors.transparent
-                                      : cs.surface;
-                                  if (_isDesktop && _assistantHeaderHovered) {
-                                    return embedded
-                                        ? cs.primary.withValues(alpha: 0.08)
-                                        : cs.surface.withValues(alpha: 0.9);
-                                  }
-                                  return base;
-                                })(),
-                                borderRadius: BorderRadius.circular(16),
-                                onTap: _toggleAssistantPicker,
-                                onLongPress: _isDesktop
-                                    ? null
-                                    : () {
-                                        final id = context
-                                            .read<AssistantProvider>()
-                                            .currentAssistantId;
-                                        if (id != null) {
-                                          _openAssistantSettings(id);
-                                        }
-                                      },
-                                padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
-                                child: Row(
-                                  children: [
-                                    AssistantAvatar(
-                                      assistant: ap.currentAssistant,
-                                      fallbackName: widget.assistantName,
-                                      size: 32,
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Text(
-                                        (ap.currentAssistant?.name ??
-                                            widget.assistantName),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: _isDesktop ? 14 : 15,
-                                          fontWeight: FontWeight.w500,
-                                          color: textBase,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    AnimatedRotation(
-                                      turns: _assistantsExpanded ? 0.5 : 0.0,
-                                      duration: const Duration(
-                                        milliseconds: 350,
-                                      ),
-                                      curve: Curves.easeOutCubic,
-                                      child: Icon(
-                                        Lucide.ChevronDown,
-                                        size: 18,
-                                        color: textBase.withValues(alpha: 0.7),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
                         ),
                     ],
 
@@ -2246,24 +2155,9 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 
   void _toggleAssistantPicker() {
-    final goingToExpand = !_assistantsExpanded;
     setState(() {
-      _assistantsExpanded = goingToExpand;
+      _assistantsExpanded = !_assistantsExpanded;
     });
-    if (goingToExpand) {
-      // Smoothly reveal the assistant list at the top
-      if (_listController.hasClients) {
-        // Slight delay to ensure layout is ready before animating
-        Future<void>.delayed(const Duration(milliseconds: 10), () {
-          if (!_listController.hasClients) return;
-          _listController.animateTo(
-            0,
-            duration: const Duration(milliseconds: 420),
-            curve: Curves.easeOutCubic,
-          );
-        });
-      }
-    }
   }
 
   void _closeAssistantPicker() {
@@ -3262,6 +3156,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     List<_ChatGroup> groups, {
     bool includeUpdateBanner = false,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final children = <Widget>[];
     if (includeUpdateBanner) {
       children.add(
@@ -3277,7 +3172,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
             if (url == null || url.isEmpty) return const SizedBox.shrink();
             final ver = info.version;
             final build = info.build;
-            final l10n = AppLocalizations.of(context)!;
             final title = build != null
                 ? l10n.sideDrawerUpdateTitleWithBuild(ver, build)
                 : l10n.sideDrawerUpdateTitle(ver);
@@ -3349,154 +3243,104 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       );
     }
 
-    if (widget.onOpenCodexWorkspace != null) {
-      final l10n = AppLocalizations.of(context)!;
+    if (!widget.desktopTopicsOnly) {
       children.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _CodexDrawerWorkspaceCard(
-            title: l10n.settingsPageCodexWorkspace,
-            onTap: () {
-              final closeDrawer = !context
-                  .read<SettingsProvider>()
-                  .keepSidebarOpenOnTopicTap;
-              widget.onOpenCodexWorkspace?.call(closeDrawer: closeDrawer);
-            },
+        _DrawerSection(
+          title: l10n.assistantEditPageTitle,
+          collapsed: !_assistantsExpanded,
+          onToggle: _toggleAssistantPicker,
+          child: _assistantsExpanded
+              ? _buildAssistantsList(context, inlineMode: true)
+              : const SizedBox.shrink(),
+        ),
+      );
+      children.add(const SizedBox(height: 10));
+    }
+
+    if (widget.onOpenCodexWorkspace != null) {
+      children.add(
+        _DrawerSection(
+          title: l10n.codexWorkspacePageTitle,
+          collapsed: !_codexExpanded,
+          onToggle: () {
+            setState(() => _codexExpanded = !_codexExpanded);
+          },
+          child: Column(
+            children: [
+              _CodexDrawerNavTile(
+                title: l10n.settingsPageCodexWorkspace,
+                icon: Lucide.Cable,
+                selected: widget.activeCodexSessionId == null,
+                onTap: () {
+                  final closeDrawer = !context
+                      .read<SettingsProvider>()
+                      .keepSidebarOpenOnTopicTap;
+                  widget.onOpenCodexWorkspace?.call(closeDrawer: closeDrawer);
+                },
+              ),
+              if (codexSessions.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Column(
+                  children: [
+                    for (final session in codexSessions)
+                      _CodexSessionDrawerTile(
+                        session: session,
+                        selected: widget.activeCodexSessionId == session.id,
+                        onTap: () {
+                          final closeDrawer = !context
+                              .read<SettingsProvider>()
+                              .keepSidebarOpenOnTopicTap;
+                          widget.onSelectCodexSession?.call(
+                            session.id,
+                            closeDrawer: closeDrawer,
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ),
       );
-
-      if (codexSessions.isNotEmpty) {
-        children.add(
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 0, 8),
-            child: Text(
-              l10n.codexWorkspaceSessionsSectionTitle,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: cs.primary,
-              ),
-            ),
-          ),
-        );
-        children.add(
-          Column(
-            children: [
-              for (final session in codexSessions)
-                _CodexSessionDrawerTile(
-                  session: session,
-                  selected: widget.activeCodexSessionId == session.id,
-                  onTap: () {
-                    final closeDrawer = !context
-                        .read<SettingsProvider>()
-                        .keepSidebarOpenOnTopicTap;
-                    widget.onSelectCodexSession?.call(
-                      session.id,
-                      closeDrawer: closeDrawer,
-                    );
-                  },
-                ),
-            ],
-          ),
-        );
-        children.add(const SizedBox(height: 10));
-      }
+      children.add(const SizedBox(height: 10));
     }
 
     children.add(
-      PageTransitionSwitcher(
-        duration: const Duration(milliseconds: 260),
-        reverse: false,
-        transitionBuilder: (child, primary, secondary) => FadeThroughTransition(
-          fillColor: Colors.transparent,
-          animation: CurvedAnimation(
-            parent: primary,
-            curve: Curves.easeOutCubic,
-          ),
-          secondaryAnimation: CurvedAnimation(
-            parent: secondary,
-            curve: Curves.easeInCubic,
-          ),
-          child: child,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          key: ValueKey(
-            '${_query}_${[...pinnedList.map((c) => c.id), ...groups.expand((g) => g.items.map((c) => c.id))].join(',')}',
-          ),
-          children: [
-            if (pinnedList.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 6, 0, 6),
-                child:
-                    Text(
-                          AppLocalizations.of(context)!.sideDrawerPinnedLabel,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: cs.primary,
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 180.ms)
-                        .moveY(
-                          begin: 4,
-                          end: 0,
-                          duration: 220.ms,
-                          curve: Curves.easeOutCubic,
-                        ),
+      _DrawerSection(
+        title: l10n.backupPageChatsLabel,
+        collapsed: !_chatsExpanded,
+        onToggle: () {
+          setState(() => _chatsExpanded = !_chatsExpanded);
+        },
+        child: PageTransitionSwitcher(
+          duration: const Duration(milliseconds: 260),
+          reverse: false,
+          transitionBuilder: (child, primary, secondary) =>
+              FadeThroughTransition(
+                fillColor: Colors.transparent,
+                animation: CurvedAnimation(
+                  parent: primary,
+                  curve: Curves.easeOutCubic,
+                ),
+                secondaryAnimation: CurvedAnimation(
+                  parent: secondary,
+                  curve: Curves.easeInCubic,
+                ),
+                child: child,
               ),
-              Column(
-                children: [
-                  for (int i = 0; i < pinnedList.length; i++)
-                    _ChatTile(
-                          chat: pinnedList[i],
-                          textColor: textBase,
-                          selected:
-                              pinnedList[i].id ==
-                              chatService.currentConversationId,
-                          loading: widget.loadingConversationIds.contains(
-                            pinnedList[i].id,
-                          ),
-                          onTap: () {
-                            final closeDrawer = !context
-                                .read<SettingsProvider>()
-                                .keepSidebarOpenOnTopicTap;
-                            widget.onSelectConversation?.call(
-                              pinnedList[i].id,
-                              closeDrawer: closeDrawer,
-                            );
-                          },
-                          onLongPress: () =>
-                              _showChatMenu(context, pinnedList[i]),
-                          onSecondaryTap: (pos) => _showChatMenu(
-                            context,
-                            pinnedList[i],
-                            anchor: pos,
-                          ),
-                        )
-                        .animate(key: ValueKey('pin-${pinnedList[i].id}'))
-                        .fadeIn(duration: 220.ms, delay: (20 * i).ms)
-                        .moveY(
-                          begin: 8,
-                          end: 0,
-                          duration: 260.ms,
-                          curve: Curves.easeOutCubic,
-                          delay: (20 * i).ms,
-                        ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
-            for (final group in groups) ...[
-              if (context.watch<SettingsProvider>().showChatListDate)
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            key: ValueKey(
+              '${_query}_${[...pinnedList.map((c) => c.id), ...groups.expand((g) => g.items.map((c) => c.id))].join(',')}',
+            ),
+            children: [
+              if (pinnedList.isNotEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 6, 0, 6),
                   child:
                       Text(
-                            group.label,
-                            textAlign: TextAlign.left,
+                            l10n.sideDrawerPinnedLabel,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -3512,54 +3356,122 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                             curve: Curves.easeOutCubic,
                           ),
                 ),
-              Column(
-                children: [
-                  for (int j = 0; j < group.items.length; j++)
-                    _ChatTile(
-                          chat: group.items[j],
-                          textColor: textBase,
-                          selected:
-                              group.items[j].id ==
-                              chatService.currentConversationId,
-                          loading: widget.loadingConversationIds.contains(
-                            group.items[j].id,
+                Column(
+                  children: [
+                    for (int i = 0; i < pinnedList.length; i++)
+                      _ChatTile(
+                            chat: pinnedList[i],
+                            textColor: textBase,
+                            selected:
+                                pinnedList[i].id ==
+                                chatService.currentConversationId,
+                            loading: widget.loadingConversationIds.contains(
+                              pinnedList[i].id,
+                            ),
+                            onTap: () {
+                              final closeDrawer = !context
+                                  .read<SettingsProvider>()
+                                  .keepSidebarOpenOnTopicTap;
+                              widget.onSelectConversation?.call(
+                                pinnedList[i].id,
+                                closeDrawer: closeDrawer,
+                              );
+                            },
+                            onLongPress: () =>
+                                _showChatMenu(context, pinnedList[i]),
+                            onSecondaryTap: (pos) => _showChatMenu(
+                              context,
+                              pinnedList[i],
+                              anchor: pos,
+                            ),
+                          )
+                          .animate(key: ValueKey('pin-${pinnedList[i].id}'))
+                          .fadeIn(duration: 220.ms, delay: (20 * i).ms)
+                          .moveY(
+                            begin: 8,
+                            end: 0,
+                            duration: 260.ms,
+                            curve: Curves.easeOutCubic,
+                            delay: (20 * i).ms,
                           ),
-                          onTap: () {
-                            final closeDrawer = !context
-                                .read<SettingsProvider>()
-                                .keepSidebarOpenOnTopicTap;
-                            widget.onSelectConversation?.call(
-                              group.items[j].id,
-                              closeDrawer: closeDrawer,
-                            );
-                          },
-                          onLongPress: () =>
-                              _showChatMenu(context, group.items[j]),
-                          onSecondaryTap: (pos) => _showChatMenu(
-                            context,
-                            group.items[j],
-                            anchor: pos,
-                          ),
-                        )
-                        .animate(
-                          key: ValueKey(
-                            'grp-${group.label}-${group.items[j].id}',
-                          ),
-                        )
-                        .fadeIn(duration: 220.ms, delay: (16 * j).ms)
-                        .moveY(
-                          begin: 6,
-                          end: 0,
-                          duration: 240.ms,
-                          curve: Curves.easeOutCubic,
-                          delay: (16 * j).ms,
-                        ),
-                ],
-              ),
-              if (context.watch<SettingsProvider>().showChatListDate)
+                  ],
+                ),
                 const SizedBox(height: 8),
+              ],
+              for (final group in groups) ...[
+                if (context.watch<SettingsProvider>().showChatListDate)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 6, 0, 6),
+                    child:
+                        Text(
+                              group.label,
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: cs.primary,
+                              ),
+                            )
+                            .animate()
+                            .fadeIn(duration: 180.ms)
+                            .moveY(
+                              begin: 4,
+                              end: 0,
+                              duration: 220.ms,
+                              curve: Curves.easeOutCubic,
+                            ),
+                  ),
+                Column(
+                  children: [
+                    for (int j = 0; j < group.items.length; j++)
+                      _ChatTile(
+                            chat: group.items[j],
+                            textColor: textBase,
+                            selected:
+                                group.items[j].id ==
+                                chatService.currentConversationId,
+                            loading: widget.loadingConversationIds.contains(
+                              group.items[j].id,
+                            ),
+                            onTap: () {
+                              final closeDrawer = !context
+                                  .read<SettingsProvider>()
+                                  .keepSidebarOpenOnTopicTap;
+                              widget.onSelectConversation?.call(
+                                group.items[j].id,
+                                closeDrawer: closeDrawer,
+                              );
+                            },
+                            onLongPress: () =>
+                                _showChatMenu(context, group.items[j]),
+                            onSecondaryTap: (pos) => _showChatMenu(
+                              context,
+                              group.items[j],
+                              anchor: pos,
+                            ),
+                          )
+                          .animate(
+                            key: ValueKey(
+                              'grp-${group.label}-${group.items[j].id}',
+                            ),
+                          )
+                          .fadeIn(duration: 220.ms, delay: (16 * j).ms)
+                          .moveY(
+                            begin: 6,
+                            end: 0,
+                            duration: 240.ms,
+                            curve: Curves.easeOutCubic,
+                            delay: (16 * j).ms,
+                          ),
+                  ],
+                ),
+                if (context.watch<SettingsProvider>().showChatListDate)
+                  const SizedBox(height: 8),
+              ],
+              if (pinnedList.isEmpty && groups.isEmpty)
+                _DrawerEmptyState(label: l10n.chatHistoryPageNoConversations),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -3568,10 +3480,79 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 }
 
-class _CodexDrawerWorkspaceCard extends StatelessWidget {
-  const _CodexDrawerWorkspaceCard({required this.title, required this.onTap});
+class _DrawerEmptyState extends StatelessWidget {
+  const _DrawerEmptyState({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        decoration: BoxDecoration(
+          color: cs.surface.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            color: cs.onSurface.withValues(alpha: 0.58),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerSection extends StatelessWidget {
+  const _DrawerSection({
+    required this.title,
+    required this.collapsed,
+    required this.onToggle,
+    required this.child,
+  });
 
   final String title;
+  final bool collapsed;
+  final VoidCallback onToggle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _GroupHeader(title: title, collapsed: collapsed, onToggle: onToggle),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+          child: collapsed
+              ? const SizedBox.shrink()
+              : Padding(padding: const EdgeInsets.only(top: 2), child: child),
+        ),
+      ],
+    );
+  }
+}
+
+class _CodexDrawerNavTile extends StatelessWidget {
+  const _CodexDrawerNavTile({
+    required this.title,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
@@ -3579,43 +3560,48 @@ class _CodexDrawerWorkspaceCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final embedded =
         context.findAncestorWidgetOfExactType<SideDrawer>()?.embedded ?? false;
-    return IosCardPress(
-      baseColor: embedded ? Colors.transparent : cs.surface,
-      borderRadius: BorderRadius.circular(16),
-      haptics: false,
-      onTap: onTap,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      child: Row(
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+    final baseColor = selected
+        ? cs.primary.withValues(alpha: embedded ? 0.16 : 0.12)
+        : (embedded ? Colors.transparent : cs.surface);
+    final titleColor = selected ? cs.primary : cs.onSurface;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: IosCardPress(
+        baseColor: baseColor,
+        borderRadius: BorderRadius.circular(16),
+        haptics: false,
+        onTap: onTap,
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        child: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: selected
+                    ? cs.primary.withValues(alpha: 0.18)
+                    : cs.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 15, color: cs.primary),
             ),
-            alignment: Alignment.center,
-            child: Icon(Lucide.Cable, size: 15, color: cs.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: titleColor,
+                ),
               ),
             ),
-          ),
-          Icon(
-            Lucide.ChevronRight,
-            size: 16,
-            color: cs.onSurface.withValues(alpha: 0.55),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -3643,7 +3629,7 @@ class _CodexSessionDrawerTile extends StatelessWidget {
     final titleColor = selected ? cs.primary : cs.onSurface;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(left: 18, bottom: 4),
       child: IosCardPress(
         baseColor: baseColor,
         borderRadius: BorderRadius.circular(16),
@@ -3653,26 +3639,46 @@ class _CodexSessionDrawerTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              session.displayTitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: titleColor,
-              ),
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? cs.primary
+                        : cs.onSurface.withValues(alpha: 0.24),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    session.displayTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: titleColor,
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (session.preview.trim().isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(
-                session.preview,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  height: 1.3,
-                  color: cs.onSurface.withValues(alpha: 0.62),
+              Padding(
+                padding: const EdgeInsets.only(left: 18),
+                child: Text(
+                  session.preview,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.3,
+                    color: cs.onSurface.withValues(alpha: 0.62),
+                  ),
                 ),
               ),
             ],
@@ -3863,16 +3869,7 @@ class _GroupHeader extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            AnimatedRotation(
-              turns: collapsed ? 0.0 : 0.25, // right -> down
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              child: Icon(
-                Lucide.ChevronRight,
-                size: 16,
-                color: textBase.withValues(alpha: 0.7),
-              ),
-            ),
+            _DrawerChevron(expanded: !collapsed),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -3888,6 +3885,27 @@ class _GroupHeader extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DrawerChevron extends StatelessWidget {
+  const _DrawerChevron({required this.expanded});
+
+  final bool expanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final textBase = Theme.of(context).colorScheme.onSurface;
+    return AnimatedRotation(
+      turns: expanded ? 0.25 : 0.0,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      child: Icon(
+        Lucide.ChevronRight,
+        size: 16,
+        color: textBase.withValues(alpha: 0.7),
       ),
     );
   }
@@ -4161,36 +4179,13 @@ class _LegacyListArea extends StatelessWidget {
       controller: listController,
       padding: EdgeInsets.fromLTRB(
         10,
-        (context.watch<SettingsProvider>().showChatListDate ||
-                assistantsExpanded)
+        context.watch<SettingsProvider>().showChatListDate
             ? (isDesktop ? 2 : 4)
             : 10,
         10,
         16,
       ),
-      children: [
-        // Inline assistants
-        AnimatedSize(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeInOutCubic,
-          alignment: Alignment.topCenter,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
-            child: !assistantsExpanded
-                ? const SizedBox.shrink()
-                : KeyedSubtree(
-                    key: const ValueKey('assistants-inline'),
-                    child: buildAssistants(),
-                  ),
-          ),
-        ),
-        // Conversations
-        buildConversations(),
-      ],
+      children: [buildConversations()],
     );
   }
 }
