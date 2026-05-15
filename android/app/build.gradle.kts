@@ -31,6 +31,22 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appName"] = "Kelivo"
+    }
+
+    flavorDimensions += "app"
+
+    productFlavors {
+        create("prod") {
+            dimension = "app"
+            manifestPlaceholders["appName"] = "Kelivo"
+        }
+        create("dev") {
+            dimension = "app"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            manifestPlaceholders["appName"] = "Kelivo Dev"
+        }
     }
 
     val keystorePropertiesFile = rootProject.file("key.properties")
