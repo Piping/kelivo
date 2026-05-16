@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:Kelivo/core/models/codex_remote_session.dart';
 import 'package:Kelivo/core/providers/codex_remote_provider.dart';
+import 'package:Kelivo/core/providers/settings_provider.dart';
 import 'package:Kelivo/icons/lucide_adapter.dart';
 import 'package:Kelivo/l10n/app_localizations.dart';
 import 'package:Kelivo/shared/widgets/ios_tactile.dart';
@@ -27,17 +30,23 @@ class CodexSessionDetailPage extends StatefulWidget {
 
 class _CodexSessionDetailPageState extends State<CodexSessionDetailPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey _scrollViewKey = GlobalKey();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _inputController = TextEditingController();
   final FocusNode _inputFocusNode = FocusNode();
   final Set<String> _processingApprovalIds = <String>{};
+  final Map<int, GlobalKey> _messageKeys = <int, GlobalKey>{};
 
   late String _sessionId;
   late CodexRemoteSession _fallbackSession;
   Timer? _pollTimer;
+  Timer? _navButtonsHideTimer;
   int _lastMessageCount = 0;
+  int? _lastJumpUserMessageIndex;
   bool _isSending = false;
   bool _isInterrupting = false;
+  bool _showNavButtons = false;
+  bool _scrollNavHovering = false;
   String? _actionError;
 
   @override
@@ -45,6 +54,7 @@ class _CodexSessionDetailPageState extends State<CodexSessionDetailPage> {
     super.initState();
     _sessionId = widget.sessionId;
     _fallbackSession = widget.initialSession;
+    _scrollController.addListener(_handleScrollChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<CodexRemoteProvider>().refreshWorkspace();
       await _refresh(activate: true);
@@ -58,6 +68,7 @@ class _CodexSessionDetailPageState extends State<CodexSessionDetailPage> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _navButtonsHideTimer?.cancel();
     _scrollController.dispose();
     _inputController.dispose();
     _inputFocusNode.dispose();
@@ -105,6 +116,190 @@ class _CodexSessionDetailPageState extends State<CodexSessionDetailPage> {
       return;
     }
     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+  }
+
+  bool get _isDesktopPlatform =>
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
+  void _handleScrollChanged() {
+    if (!_isDesktopPlatform || !_scrollController.hasClients) {
+      _lastJumpUserMessageIndex = null;
+      return;
+    }
+    _lastJumpUserMessageIndex = null;
+    if (!_showNavButtons && mounted) {
+      setState(() => _showNavButtons = true);
+    }
+    _resetNavButtonsHideTimer();
+  }
+
+  void _resetNavButtonsHideTimer() {
+    _navButtonsHideTimer?.cancel();
+    _navButtonsHideTimer = Timer(const Duration(milliseconds: 2000), () {
+      if (!mounted || !_showNavButtons) {
+        return;
+      }
+      setState(() => _showNavButtons = false);
+    });
+  }
+
+  void _revealNavButtons() {
+    if (!_isDesktopPlatform) {
+      return;
+    }
+    if (!_showNavButtons && mounted) {
+      setState(() => _showNavButtons = true);
+    }
+    _resetNavButtonsHideTimer();
+  }
+
+  GlobalKey _messageKeyFor(int index) =>
+      _messageKeys.putIfAbsent(index, () => GlobalKey());
+
+  bool _isKeyVisible(GlobalKey key) {
+    final viewportContext = _scrollViewKey.currentContext;
+    final targetContext = key.currentContext;
+    if (viewportContext == null || targetContext == null) {
+      return false;
+    }
+    final viewportBox = viewportContext.findRenderObject() as RenderBox?;
+    final targetBox = targetContext.findRenderObject() as RenderBox?;
+    if (viewportBox == null ||
+        targetBox == null ||
+        !viewportBox.hasSize ||
+        !targetBox.hasSize) {
+      return false;
+    }
+    final viewportTop = viewportBox.localToGlobal(Offset.zero).dy;
+    final viewportBottom = viewportTop + viewportBox.size.height;
+    final targetTop = targetBox.localToGlobal(Offset.zero).dy;
+    final targetBottom = targetTop + targetBox.size.height;
+    return targetBottom > viewportTop + 24 && targetTop < viewportBottom - 24;
+  }
+
+  List<int> _visibleUserMessageIndexes(CodexRemoteSession session) {
+    final indexes = <int>[];
+    for (var i = 0; i < session.messages.length; i++) {
+      if (!session.messages[i].isUser) {
+        continue;
+      }
+      if (_isKeyVisible(_messageKeyFor(i))) {
+        indexes.add(i);
+      }
+    }
+    return indexes;
+  }
+
+  Future<void> _ensureVisible(GlobalKey key, {double alignment = 0.08}) async {
+    final targetContext = key.currentContext;
+    if (targetContext == null) {
+      return;
+    }
+    await Scrollable.ensureVisible(
+      targetContext,
+      alignment: alignment,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _scrollToTop() async {
+    _revealNavButtons();
+    _lastJumpUserMessageIndex = null;
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    await _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _scrollToBottomAnimated() async {
+    _revealNavButtons();
+    _lastJumpUserMessageIndex = null;
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    await _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _jumpToPreviousUserMessage() async {
+    final session = _currentSession;
+    if (session.messages.isEmpty) {
+      return;
+    }
+    _revealNavButtons();
+    final visibleIndexes = _visibleUserMessageIndexes(session);
+    final anchor =
+        _lastJumpUserMessageIndex ??
+        (visibleIndexes.isNotEmpty
+            ? visibleIndexes.last
+            : session.messages.length);
+    for (var i = anchor - 1; i >= 0; i--) {
+      if (!session.messages[i].isUser) {
+        continue;
+      }
+      _lastJumpUserMessageIndex = i;
+      await _ensureVisible(_messageKeyFor(i));
+      return;
+    }
+    await _scrollToTop();
+  }
+
+  Future<void> _jumpToNextUserMessage() async {
+    final session = _currentSession;
+    if (session.messages.isEmpty) {
+      return;
+    }
+    _revealNavButtons();
+    final visibleIndexes = _visibleUserMessageIndexes(session);
+    final anchor =
+        _lastJumpUserMessageIndex ??
+        (visibleIndexes.isNotEmpty ? visibleIndexes.first : -1);
+    for (var i = anchor + 1; i < session.messages.length; i++) {
+      if (!session.messages[i].isUser) {
+        continue;
+      }
+      _lastJumpUserMessageIndex = i;
+      await _ensureVisible(_messageKeyFor(i));
+      return;
+    }
+    await _scrollToBottomAnimated();
+  }
+
+  bool _shouldShowScrollNavButtons(
+    SettingsProvider? settings,
+    CodexRemoteSession session,
+  ) {
+    final hasTargets =
+        session.messages.isNotEmpty || session.pendingApprovals.isNotEmpty;
+    if (!hasTargets) {
+      return false;
+    }
+    if (_isDesktopPlatform) {
+      switch (settings?.desktopMessageNavButtonsMode ??
+          DesktopMessageNavButtonsMode.scroll) {
+        case DesktopMessageNavButtonsMode.always:
+          return true;
+        case DesktopMessageNavButtonsMode.scroll:
+          return _showNavButtons;
+        case DesktopMessageNavButtonsMode.hover:
+          return _scrollNavHovering;
+        case DesktopMessageNavButtonsMode.scrollAndHover:
+          return _showNavButtons || _scrollNavHovering;
+        case DesktopMessageNavButtonsMode.never:
+          return false;
+      }
+    }
+    return settings?.showMessageNavButtons ?? true;
   }
 
   Future<void> _sendMessage() async {
@@ -215,11 +410,14 @@ class _CodexSessionDetailPageState extends State<CodexSessionDetailPage> {
       _sessionId = session.id;
       _fallbackSession = session;
       _lastMessageCount = session.messages.length;
+      _lastJumpUserMessageIndex = null;
       _actionError = null;
       _isSending = false;
       _isInterrupting = false;
+      _showNavButtons = false;
       _processingApprovalIds.clear();
       _inputController.clear();
+      _messageKeys.clear();
     });
     _closeSessionDrawerIfOpen();
     await _refresh(activate: true);
@@ -240,10 +438,12 @@ class _CodexSessionDetailPageState extends State<CodexSessionDetailPage> {
     final session = provider.sessionDetailFor(_sessionId) ?? _fallbackSession;
     final sessions = provider.sessions;
     final cs = Theme.of(context).colorScheme;
-    final actionError = _actionError ?? provider.lastError;
+    final actionError = _actionError;
     final statusText = codexSessionStatusText(context, session.runtimeStatus);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final showEmbeddedSidebar = screenWidth >= 980;
+    final settings = context.watch<SettingsProvider?>();
+    final showScrollNavButtons = _shouldShowScrollNavButtons(settings, session);
 
     final content = SafeArea(
       child: Row(
@@ -274,6 +474,7 @@ class _CodexSessionDetailPageState extends State<CodexSessionDetailPage> {
                       message: l10n.codexWorkspaceSessionActionError(
                         actionError,
                       ),
+                      onDismiss: () => setState(() => _actionError = null),
                     ),
                   ),
                 Padding(
@@ -284,56 +485,81 @@ class _CodexSessionDetailPageState extends State<CodexSessionDetailPage> {
                   ),
                 ),
                 Expanded(
-                  child: ListView(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      if (provider.isLoadingSession(_sessionId) &&
-                          session.messages.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 24),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else if (session.messages.isEmpty)
-                        _EmptyConversationCard(
-                          text: l10n.codexWorkspaceSessionConversationEmpty,
-                        )
-                      else
-                        ...session.messages.map(
-                          (message) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _TranscriptBubble(message: message),
-                          ),
-                        ),
-                      if (session.pendingApprovals.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Text(
-                            l10n.codexWorkspaceSessionApprovalsTitle,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: cs.onSurface.withValues(alpha: 0.82),
-                            ),
-                          ),
-                        ),
-                        ...session.pendingApprovals.map(
-                          (approval) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _ApprovalCard(
-                              approval: approval,
-                              busy: _processingApprovalIds.contains(
-                                approval.requestId,
+                      ListView(
+                        key: _scrollViewKey,
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                        children: [
+                          if (provider.isLoadingSession(_sessionId) &&
+                              session.messages.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 24),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          else if (session.messages.isEmpty)
+                            _EmptyConversationCard(
+                              text: l10n.codexWorkspaceSessionConversationEmpty,
+                            )
+                          else
+                            for (var i = 0; i < session.messages.length; i++)
+                              Padding(
+                                key: _messageKeyFor(i),
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _TranscriptBubble(
+                                  message: session.messages[i],
+                                ),
                               ),
-                              onApprove: () =>
-                                  _resolveApproval(approval, approve: true),
-                              onDeny: () =>
-                                  _resolveApproval(approval, approve: false),
+                          if (session.pendingApprovals.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Text(
+                                l10n.codexWorkspaceSessionApprovalsTitle,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSurface.withValues(alpha: 0.82),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                            ...session.pendingApprovals.map(
+                              (approval) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _ApprovalCard(
+                                  approval: approval,
+                                  busy: _processingApprovalIds.contains(
+                                    approval.requestId,
+                                  ),
+                                  onApprove: () =>
+                                      _resolveApproval(approval, approve: true),
+                                  onDeny: () => _resolveApproval(
+                                    approval,
+                                    approve: false,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      _CodexScrollNavButtons(
+                        visible: showScrollNavButtons,
+                        onHoverChanged: _isDesktopPlatform
+                            ? (hovering) {
+                                if (_scrollNavHovering == hovering) {
+                                  return;
+                                }
+                                setState(() => _scrollNavHovering = hovering);
+                              }
+                            : null,
+                        onScrollToTop: () => _scrollToTop(),
+                        onPreviousMessage: () => _jumpToPreviousUserMessage(),
+                        onNextMessage: () => _jumpToNextUserMessage(),
+                        onScrollToBottom: () => _scrollToBottomAnimated(),
+                      ),
                     ],
                   ),
                 ),
@@ -480,21 +706,28 @@ class CodexSessionConversationView extends StatefulWidget {
 
 class _CodexSessionConversationViewState
     extends State<CodexSessionConversationView> {
+  final GlobalKey _scrollViewKey = GlobalKey();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _inputController = TextEditingController();
   final FocusNode _inputFocusNode = FocusNode();
   final Set<String> _processingApprovalIds = <String>{};
+  final Map<int, GlobalKey> _messageKeys = <int, GlobalKey>{};
 
   late CodexRemoteSession _fallbackSession;
   Timer? _pollTimer;
+  Timer? _navButtonsHideTimer;
   int _lastMessageCount = 0;
+  int? _lastJumpUserMessageIndex;
   bool _isSending = false;
+  bool _showNavButtons = false;
+  bool _scrollNavHovering = false;
   String? _actionError;
 
   @override
   void initState() {
     super.initState();
     _fallbackSession = widget.initialSession;
+    _scrollController.addListener(_handleScrollChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<CodexRemoteProvider>().refreshWorkspace();
       await _refresh(activate: true);
@@ -513,9 +746,12 @@ class _CodexSessionConversationViewState
     }
     _fallbackSession = widget.initialSession;
     _lastMessageCount = widget.initialSession.messages.length;
+    _lastJumpUserMessageIndex = null;
     _actionError = null;
+    _showNavButtons = false;
     _processingApprovalIds.clear();
     _inputController.clear();
+    _messageKeys.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _refresh(activate: true);
       if (!mounted) return;
@@ -526,6 +762,7 @@ class _CodexSessionConversationViewState
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _navButtonsHideTimer?.cancel();
     _scrollController.dispose();
     _inputController.dispose();
     _inputFocusNode.dispose();
@@ -573,6 +810,190 @@ class _CodexSessionConversationViewState
       return;
     }
     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+  }
+
+  bool get _isDesktopPlatform =>
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
+  void _handleScrollChanged() {
+    if (!_isDesktopPlatform || !_scrollController.hasClients) {
+      _lastJumpUserMessageIndex = null;
+      return;
+    }
+    _lastJumpUserMessageIndex = null;
+    if (!_showNavButtons && mounted) {
+      setState(() => _showNavButtons = true);
+    }
+    _resetNavButtonsHideTimer();
+  }
+
+  void _resetNavButtonsHideTimer() {
+    _navButtonsHideTimer?.cancel();
+    _navButtonsHideTimer = Timer(const Duration(milliseconds: 2000), () {
+      if (!mounted || !_showNavButtons) {
+        return;
+      }
+      setState(() => _showNavButtons = false);
+    });
+  }
+
+  void _revealNavButtons() {
+    if (!_isDesktopPlatform) {
+      return;
+    }
+    if (!_showNavButtons && mounted) {
+      setState(() => _showNavButtons = true);
+    }
+    _resetNavButtonsHideTimer();
+  }
+
+  GlobalKey _messageKeyFor(int index) =>
+      _messageKeys.putIfAbsent(index, () => GlobalKey());
+
+  bool _isKeyVisible(GlobalKey key) {
+    final viewportContext = _scrollViewKey.currentContext;
+    final targetContext = key.currentContext;
+    if (viewportContext == null || targetContext == null) {
+      return false;
+    }
+    final viewportBox = viewportContext.findRenderObject() as RenderBox?;
+    final targetBox = targetContext.findRenderObject() as RenderBox?;
+    if (viewportBox == null ||
+        targetBox == null ||
+        !viewportBox.hasSize ||
+        !targetBox.hasSize) {
+      return false;
+    }
+    final viewportTop = viewportBox.localToGlobal(Offset.zero).dy;
+    final viewportBottom = viewportTop + viewportBox.size.height;
+    final targetTop = targetBox.localToGlobal(Offset.zero).dy;
+    final targetBottom = targetTop + targetBox.size.height;
+    return targetBottom > viewportTop + 24 && targetTop < viewportBottom - 24;
+  }
+
+  List<int> _visibleUserMessageIndexes(CodexRemoteSession session) {
+    final indexes = <int>[];
+    for (var i = 0; i < session.messages.length; i++) {
+      if (!session.messages[i].isUser) {
+        continue;
+      }
+      if (_isKeyVisible(_messageKeyFor(i))) {
+        indexes.add(i);
+      }
+    }
+    return indexes;
+  }
+
+  Future<void> _ensureVisible(GlobalKey key, {double alignment = 0.08}) async {
+    final targetContext = key.currentContext;
+    if (targetContext == null) {
+      return;
+    }
+    await Scrollable.ensureVisible(
+      targetContext,
+      alignment: alignment,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _scrollToTop() async {
+    _revealNavButtons();
+    _lastJumpUserMessageIndex = null;
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    await _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _scrollToBottomAnimated() async {
+    _revealNavButtons();
+    _lastJumpUserMessageIndex = null;
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    await _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _jumpToPreviousUserMessage() async {
+    final session = _currentSession;
+    if (session.messages.isEmpty) {
+      return;
+    }
+    _revealNavButtons();
+    final visibleIndexes = _visibleUserMessageIndexes(session);
+    final anchor =
+        _lastJumpUserMessageIndex ??
+        (visibleIndexes.isNotEmpty
+            ? visibleIndexes.last
+            : session.messages.length);
+    for (var i = anchor - 1; i >= 0; i--) {
+      if (!session.messages[i].isUser) {
+        continue;
+      }
+      _lastJumpUserMessageIndex = i;
+      await _ensureVisible(_messageKeyFor(i));
+      return;
+    }
+    await _scrollToTop();
+  }
+
+  Future<void> _jumpToNextUserMessage() async {
+    final session = _currentSession;
+    if (session.messages.isEmpty) {
+      return;
+    }
+    _revealNavButtons();
+    final visibleIndexes = _visibleUserMessageIndexes(session);
+    final anchor =
+        _lastJumpUserMessageIndex ??
+        (visibleIndexes.isNotEmpty ? visibleIndexes.first : -1);
+    for (var i = anchor + 1; i < session.messages.length; i++) {
+      if (!session.messages[i].isUser) {
+        continue;
+      }
+      _lastJumpUserMessageIndex = i;
+      await _ensureVisible(_messageKeyFor(i));
+      return;
+    }
+    await _scrollToBottomAnimated();
+  }
+
+  bool _shouldShowScrollNavButtons(
+    SettingsProvider? settings,
+    CodexRemoteSession session,
+  ) {
+    final hasTargets =
+        session.messages.isNotEmpty || session.pendingApprovals.isNotEmpty;
+    if (!hasTargets) {
+      return false;
+    }
+    if (_isDesktopPlatform) {
+      switch (settings?.desktopMessageNavButtonsMode ??
+          DesktopMessageNavButtonsMode.scroll) {
+        case DesktopMessageNavButtonsMode.always:
+          return true;
+        case DesktopMessageNavButtonsMode.scroll:
+          return _showNavButtons;
+        case DesktopMessageNavButtonsMode.hover:
+          return _scrollNavHovering;
+        case DesktopMessageNavButtonsMode.scrollAndHover:
+          return _showNavButtons || _scrollNavHovering;
+        case DesktopMessageNavButtonsMode.never:
+          return false;
+      }
+    }
+    return settings?.showMessageNavButtons ?? true;
   }
 
   Future<void> _sendMessage() async {
@@ -652,8 +1073,10 @@ class _CodexSessionConversationViewState
     final session =
         provider.sessionDetailFor(widget.sessionId) ?? _fallbackSession;
     final cs = Theme.of(context).colorScheme;
-    final actionError = _actionError ?? provider.lastError;
+    final actionError = _actionError;
     final statusText = codexSessionStatusText(context, session.runtimeStatus);
+    final settings = context.watch<SettingsProvider?>();
+    final showScrollNavButtons = _shouldShowScrollNavButtons(settings, session);
 
     return Column(
       children: [
@@ -662,6 +1085,7 @@ class _CodexSessionConversationViewState
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: _InlineErrorBanner(
               message: l10n.codexWorkspaceSessionActionError(actionError),
+              onDismiss: () => setState(() => _actionError = null),
             ),
           ),
         Padding(
@@ -669,53 +1093,77 @@ class _CodexSessionConversationViewState
           child: _SessionMetaCard(session: session, statusText: statusText),
         ),
         Expanded(
-          child: ListView(
-            controller: _scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              if (provider.isLoadingSession(widget.sessionId) &&
-                  session.messages.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 24),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (session.messages.isEmpty)
-                _EmptyConversationCard(
-                  text: l10n.codexWorkspaceSessionConversationEmpty,
-                )
-              else
-                ...session.messages.map(
-                  (message) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _TranscriptBubble(message: message),
-                  ),
-                ),
-              if (session.pendingApprovals.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(
-                    l10n.codexWorkspaceSessionApprovalsTitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onSurface.withValues(alpha: 0.82),
+              ListView(
+                key: _scrollViewKey,
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                children: [
+                  if (provider.isLoadingSession(widget.sessionId) &&
+                      session.messages.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (session.messages.isEmpty)
+                    _EmptyConversationCard(
+                      text: l10n.codexWorkspaceSessionConversationEmpty,
+                    )
+                  else
+                    for (var i = 0; i < session.messages.length; i++)
+                      Padding(
+                        key: _messageKeyFor(i),
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _TranscriptBubble(message: session.messages[i]),
+                      ),
+                  if (session.pendingApprovals.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        l10n.codexWorkspaceSessionApprovalsTitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface.withValues(alpha: 0.82),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                ...session.pendingApprovals.map(
-                  (approval) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _ApprovalCard(
-                      approval: approval,
-                      busy: _processingApprovalIds.contains(approval.requestId),
-                      onApprove: () =>
-                          _resolveApproval(approval, approve: true),
-                      onDeny: () => _resolveApproval(approval, approve: false),
+                    ...session.pendingApprovals.map(
+                      (approval) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _ApprovalCard(
+                          approval: approval,
+                          busy: _processingApprovalIds.contains(
+                            approval.requestId,
+                          ),
+                          onApprove: () =>
+                              _resolveApproval(approval, approve: true),
+                          onDeny: () =>
+                              _resolveApproval(approval, approve: false),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                ],
+              ),
+              _CodexScrollNavButtons(
+                visible: showScrollNavButtons,
+                onHoverChanged: _isDesktopPlatform
+                    ? (hovering) {
+                        if (_scrollNavHovering == hovering) {
+                          return;
+                        }
+                        setState(() => _scrollNavHovering = hovering);
+                      }
+                    : null,
+                onScrollToTop: () => _scrollToTop(),
+                onPreviousMessage: () => _jumpToPreviousUserMessage(),
+                onNextMessage: () => _jumpToNextUserMessage(),
+                onScrollToBottom: () => _scrollToBottomAnimated(),
+              ),
             ],
           ),
         ),
@@ -1251,9 +1699,10 @@ class _ApprovalField extends StatelessWidget {
 }
 
 class _InlineErrorBanner extends StatelessWidget {
-  const _InlineErrorBanner({required this.message});
+  const _InlineErrorBanner({required this.message, this.onDismiss});
 
   final String message;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -1266,11 +1715,152 @@ class _InlineErrorBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: cs.error.withValues(alpha: 0.16)),
       ),
-      child: Text(
-        message,
-        style: TextStyle(
-          fontSize: 13,
-          color: cs.onSurface.withValues(alpha: 0.84),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 13,
+                color: cs.onSurface.withValues(alpha: 0.84),
+              ),
+            ),
+          ),
+          if (onDismiss != null) ...[
+            const SizedBox(width: 8),
+            IosIconButton(
+              icon: Lucide.X,
+              size: 15,
+              color: cs.onSurface.withValues(alpha: 0.7),
+              padding: const EdgeInsets.all(4),
+              semanticLabel: MaterialLocalizations.of(
+                context,
+              ).closeButtonTooltip,
+              onTap: onDismiss,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CodexScrollNavButtons extends StatelessWidget {
+  const _CodexScrollNavButtons({
+    required this.visible,
+    required this.onScrollToTop,
+    required this.onPreviousMessage,
+    required this.onNextMessage,
+    required this.onScrollToBottom,
+    this.onHoverChanged,
+  });
+
+  final bool visible;
+  final ValueChanged<bool>? onHoverChanged;
+  final VoidCallback onScrollToTop;
+  final VoidCallback onPreviousMessage;
+  final VoidCallback onNextMessage;
+  final VoidCallback onScrollToBottom;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = isDark ? Colors.white : Colors.black87;
+
+    return Positioned(
+      right: 12,
+      bottom: 12,
+      child: MouseRegion(
+        onEnter: onHoverChanged == null ? null : (_) => onHoverChanged!(true),
+        onExit: onHoverChanged == null ? null : (_) => onHoverChanged!(false),
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: AnimatedSlide(
+            offset: visible ? Offset.zero : const Offset(1.1, 0),
+            duration: const Duration(milliseconds: 220),
+            curve: visible ? Curves.easeOutCubic : Curves.easeInCubic,
+            child: AnimatedOpacity(
+              opacity: visible ? 1 : 0,
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CodexScrollNavButton(
+                    icon: Lucide.ChevronsUp,
+                    iconColor: iconColor,
+                    isDark: isDark,
+                    onTap: onScrollToTop,
+                  ),
+                  const SizedBox(height: 8),
+                  _CodexScrollNavButton(
+                    icon: Lucide.ChevronUp,
+                    iconColor: iconColor,
+                    isDark: isDark,
+                    onTap: onPreviousMessage,
+                  ),
+                  const SizedBox(height: 8),
+                  _CodexScrollNavButton(
+                    icon: Lucide.ChevronDown,
+                    iconColor: iconColor,
+                    isDark: isDark,
+                    onTap: onNextMessage,
+                  ),
+                  const SizedBox(height: 8),
+                  _CodexScrollNavButton(
+                    icon: Lucide.ChevronsDown,
+                    iconColor: iconColor,
+                    isDark: isDark,
+                    onTap: onScrollToBottom,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CodexScrollNavButton extends StatelessWidget {
+  const _CodexScrollNavButton({
+    required this.icon,
+    required this.iconColor,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.4)
+            : Colors.white.withValues(alpha: 0.88),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : Theme.of(context).colorScheme.outline.withValues(alpha: 0.20),
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Icon(icon, size: 16, color: iconColor),
+          ),
         ),
       ),
     );

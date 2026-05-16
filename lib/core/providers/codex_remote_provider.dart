@@ -12,6 +12,7 @@ enum CodexRemoteConnectionStatus { idle, connecting, connected, error }
 
 class CodexRemoteProvider extends ChangeNotifier {
   static const String _prefsBaseUrlKey = 'codex_remote_base_url_v1';
+  static const Duration _requestTimeout = Duration(seconds: 20);
 
   String _baseUrl = '';
   CodexRemoteConnectionStatus _status = CodexRemoteConnectionStatus.idle;
@@ -128,6 +129,7 @@ class CodexRemoteProvider extends ChangeNotifier {
       final sessionJson = await _getJson('/api/v1/sessions/$sessionId$query');
       final detail = CodexRemoteSession.fromJson(sessionJson);
       _sessionDetails[sessionId] = detail;
+      _lastError = null;
       return detail;
     } catch (error) {
       _lastError = error.toString();
@@ -178,7 +180,7 @@ class CodexRemoteProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> _getJson(String path) async {
     final response = await http
         .get(Uri.parse('$_baseUrl$path'))
-        .timeout(const Duration(seconds: 8));
+        .timeout(_requestTimeout);
     return _decodeJsonResponse(response);
   }
 
@@ -193,7 +195,7 @@ class CodexRemoteProvider extends ChangeNotifier {
           headers: const <String, String>{'content-type': 'application/json'},
           body: jsonEncode(body),
         )
-        .timeout(const Duration(seconds: 8));
+        .timeout(_requestTimeout);
     return _decodeJsonResponse(response);
   }
 
